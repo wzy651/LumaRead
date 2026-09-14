@@ -1,1 +1,1 @@
-export function HomePage() { return null }
+export { HomePage } from './HomePage'

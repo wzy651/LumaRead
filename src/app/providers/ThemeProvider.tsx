@@ -1,13 +1,6 @@
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useState, type ReactNode } from 'react'
+import { ThemeContext, type Theme } from './theme-context'
 
-type Theme = 'light' | 'dark'
-
-interface ThemeContextValue {
-  theme: Theme
-  toggleTheme: () => void
-}
-
-const ThemeContext = createContext<ThemeContextValue | null>(null)
 const storageKey = 'lumaread-theme'
 
 function getInitialTheme(): Theme {
@@ -26,10 +19,4 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   const toggleTheme = useCallback(() => setTheme((currentTheme) => currentTheme === 'light' ? 'dark' : 'light'), [])
   return <ThemeContext.Provider value={{ theme, toggleTheme }}>{children}</ThemeContext.Provider>
-}
-
-export function useTheme(): ThemeContextValue {
-  const value = useContext(ThemeContext)
-  if (!value) throw new Error('useTheme must be used within ThemeProvider')
-  return value
 }

@@ -2,13 +2,13 @@ export interface Book {
   id: string
   title: string
   author: string
-  coverUrl: string
-  currentChapter: string
+  /** Optional asset URL; owning features render a fallback when absent. */
+  coverUrl?: string
   progress: ReadingProgress
 }
 
 export interface ReadingProgress {
   completedPercent: number
-  currentLocation: string
+  locationLabel: string
   wordsRead: number
 }

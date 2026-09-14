@@ -2,7 +2,7 @@ import './ui.css'
 
 interface ProgressProps {
   value: number
-  label?: string
+  label: string
 }
 
 export function Progress({ value, label }: ProgressProps) {

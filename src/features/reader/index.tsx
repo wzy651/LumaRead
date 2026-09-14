@@ -1,1 +1,1 @@
-export function ReaderPage() { return null }
+export { ReaderPage } from './ReaderPage'

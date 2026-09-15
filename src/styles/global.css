@@ -1,9 +1,9 @@
 @import './tokens.css';
 
 * { box-sizing: border-box; }
-html { min-height: 100%; background: var(--color-page); overflow-x: hidden; }
+html { min-height: 100%; background: var(--color-page); }
 body, #root { min-height: 100vh; min-height: 100dvh; }
-body { min-width: 320px; margin: 0; overflow-x: hidden; background: var(--color-page); color: var(--color-text); font-family: var(--font-ui); transition: background-color var(--duration-standard) var(--ease-out), color var(--duration-standard) var(--ease-out); }
+body { min-width: 320px; margin: 0; background: var(--color-page); color: var(--color-text); font-family: var(--font-ui); transition: background-color var(--duration-standard) var(--ease-out), color var(--duration-standard) var(--ease-out); }
 button, input { font: inherit; }
 button { touch-action: manipulation; }
 a { color: inherit; }

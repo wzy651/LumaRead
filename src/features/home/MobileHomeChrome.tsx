@@ -26,11 +26,10 @@ export function MobileShortcuts() {
         <span>Stats</span>
         <small>Soon</small>
       </button>
-      <button className="home-shortcut home-shortcut--upcoming" disabled title="Library — Coming soon" type="button">
+      <Link className="home-shortcut" to="/library">
         <span className="home-shortcut__icon"><Library aria-hidden="true" size={20} strokeWidth={1.8} /></span>
         <span>Library</span>
-        <small>Soon</small>
-      </button>
+      </Link>
     </section>
   )
 }
@@ -46,9 +45,9 @@ export function MobileBottomNavigation({ currentBookId }: { currentBookId: strin
         <BookOpen aria-hidden="true" size={20} strokeWidth={1.9} />
         <span>Read</span>
       </Link>
-      <Link className="home-mobile-nav__item" to="/review">
-        <RotateCcw aria-hidden="true" size={20} strokeWidth={1.9} />
-        <span>Review</span>
+      <Link className="home-mobile-nav__item" to="/library">
+        <Library aria-hidden="true" size={20} strokeWidth={1.9} />
+        <span>Library</span>
       </Link>
       <div className="home-mobile-nav__theme">
         <ThemeToggle />

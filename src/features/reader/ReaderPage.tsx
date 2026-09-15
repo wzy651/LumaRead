@@ -14,6 +14,7 @@ import { SentenceAidContent } from './components/SentenceAidContent'
 import { readerChapter, sentenceAids, type ReaderSegment } from './fixtures/reader-content'
 import { useReaderChromeVisibility } from './useReaderChromeVisibility'
 import { useReaderSettings } from './useReaderSettings'
+import { ImportedDocumentReader } from './documents/ImportedDocumentReader'
 import './reader.css'
 
 type ActivePanel =
@@ -41,7 +42,8 @@ export function ReaderPage() {
   const [moreVisible, setMoreVisible] = useState(false)
   const vocabularyById = useMemo(() => new Map(vocabularyItems.map((item) => [item.id, item])), [])
 
-  if (!bookId || !books.some((book) => book.id === bookId) || bookId !== readerChapter.bookId) return <Navigate replace to={'/reader/' + currentBook.id} />
+  if (bookId && !books.some((book) => book.id === bookId)) return <ImportedDocumentReader documentId={bookId} />
+  if (!bookId || bookId !== readerChapter.bookId) return <Navigate replace to={'/reader/' + currentBook.id} />
 
   function exitReader() { if (window.history.length > 1) navigate(-1); else navigate('/') }
   function openDictionary(item: VocabularyItem, anchor: HTMLElement) { setLookupCounts((current) => ({ ...current, [item.id]: (current[item.id] ?? 0) + 1 })); setMoreVisible(false); setActivePanel({ anchor, kind: 'dictionary', vocabularyId: item.id }) }

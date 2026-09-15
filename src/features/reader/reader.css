@@ -5,6 +5,9 @@
   color: var(--color-text);
 }
 
+.reader-message { display: grid; place-items: center; align-content: center; gap: var(--space-3); padding: var(--space-6); text-align: center; }
+.reader-message h1 { margin: 0; font-family: var(--font-reading); font-weight: 600; }.reader-message p { max-width: 440px; margin: 0; color: var(--color-text-muted); line-height: 1.6; }.reader-message a { color: var(--color-action); font-weight: 700; }
+
 .reader-topbar {
   position: fixed;
   z-index: 10;

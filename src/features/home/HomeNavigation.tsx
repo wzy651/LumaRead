@@ -37,7 +37,7 @@ export function HomeNavigation({ currentBookId, placement }: HomeNavigationProps
     { icon: Home, label: 'Home', to: '/', active: true },
     { icon: BookOpen, label: 'Reading', to: `/reader/${currentBookId}` },
     { icon: RotateCcw, label: 'Quick review', to: '/review' },
-    { icon: Library, label: 'Library', upcoming: true },
+    { icon: Library, label: 'Library', to: '/library' },
     { icon: BarChart3, label: 'Stats', upcoming: true },
   ]
 

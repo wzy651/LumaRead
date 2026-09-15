@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { HomePage } from '../../features/home'
+import { LibraryPage } from '../../features/library'
 import { ReaderPage } from '../../features/reader'
 import { QuickReviewPage } from '../../features/review'
 import { SessionSummaryPage } from '../../features/session-summary'
@@ -11,6 +12,7 @@ export function AppRoutes() {
       <RouteEffects />
       <Routes>
         <Route path="/" element={<HomePage />} />
+        <Route path="/library" element={<LibraryPage />} />
         <Route path="/reader/:bookId" element={<ReaderPage />} />
         <Route path="/review" element={<QuickReviewPage />} />
         <Route path="/session-summary" element={<SessionSummaryPage />} />

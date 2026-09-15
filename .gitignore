@@ -18,3 +18,4 @@ src-tauri/gen/android/local.properties
 !.env.example
 *.log
 .DS_Store
+src-tauri/gen/schemas/

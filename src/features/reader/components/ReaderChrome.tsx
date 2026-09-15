@@ -14,7 +14,7 @@ interface ReaderChromeProps {
 
 export function ReaderChrome({ bookTitle, chapterLabel, chromeRef, isMobile, onBack, onMore, onSettings, visible }: ReaderChromeProps) {
   return (
-    <header aria-label="Reader controls" className={`reader-topbar reader-chrome--${visible ? 'visible' : 'hidden'}`} ref={chromeRef}>
+    <header aria-hidden={!visible} aria-label="Reader controls" className={`reader-topbar reader-chrome--${visible ? 'visible' : 'hidden'}`} inert={!visible} ref={chromeRef}>
       <button aria-label="Back to previous page" className="reader-chrome__button" onClick={onBack} type="button"><ArrowLeft aria-hidden="true" size={19} /></button>
       <div className="reader-book-identity"><span>{bookTitle}</span><small>{chapterLabel}</small></div>
       {!isMobile && <div className="reader-topbar__progress">{chapterLabel}</div>}

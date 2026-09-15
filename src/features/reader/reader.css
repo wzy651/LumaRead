@@ -555,7 +555,7 @@
 
   .reader-prose {
     font-size: calc(18px * var(--reader-font-scale, 1));
-    line-height: 1.68;
+    line-height: var(--reader-line-height, 1.68);
   }
 
   .reader-panel__content {

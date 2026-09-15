@@ -65,7 +65,11 @@ export function ReaderPage() {
   }
   const activeVocabulary = activePanel?.kind === 'dictionary' ? vocabularyById.get(activePanel.vocabularyId) : undefined
   const activeSentenceAid = activePanel?.kind === 'sentence' ? sentenceAids[activePanel.aidId] : undefined
-  const lineHeight = settings.lineHeight === 'compact' ? 1.58 : settings.lineHeight === 'relaxed' ? 1.88 : 1.72
+  const lineHeight = settings.lineHeight === 'compact'
+    ? (isMobile ? 1.54 : 1.58)
+    : settings.lineHeight === 'relaxed'
+      ? (isMobile ? 1.84 : 1.88)
+      : (isMobile ? 1.68 : 1.72)
 
   return <div className="reader-shell">
     <ReaderChrome bookTitle={currentBook.title} chapterLabel={readerChapter.chapterLabel} chromeRef={chromeRef} isMobile={isMobile} onBack={exitReader} onMore={(anchor) => openChromePanel('more', anchor)} onSettings={(anchor) => openChromePanel('settings', anchor)} visible={visible} />

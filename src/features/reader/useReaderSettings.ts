@@ -30,7 +30,11 @@ export function useReaderSettings() {
   const [settings, setSettings] = useState<ReaderSettings>(readSettings)
 
   useEffect(() => {
-    window.localStorage.setItem(storageKey, JSON.stringify(settings))
+    try {
+      window.localStorage.setItem(storageKey, JSON.stringify(settings))
+    } catch {
+      // Storage may be disabled; React state remains the current-session source of truth.
+    }
   }, [settings])
 
   return { settings, setSettings }

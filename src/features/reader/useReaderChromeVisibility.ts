@@ -37,7 +37,13 @@ export function useReaderChromeVisibility({ isMobile, overlayOpen }: { isMobile:
       if (!isMobile && event.clientY <= 72) reveal()
     }
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Tab') reveal()
+      if (event.key === 'Tab' && !visible && !overlayOpen) {
+        event.preventDefault()
+        reveal()
+        window.requestAnimationFrame(() => {
+          chromeRef.current?.querySelector<HTMLButtonElement>('button:not([disabled])')?.focus()
+        })
+      }
       if (event.key === 'Escape' && !overlayOpen && visible) hide()
     }
     function onScroll() {

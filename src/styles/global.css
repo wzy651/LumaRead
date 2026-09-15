@@ -1,11 +1,15 @@
 @import './tokens.css';
 
 * { box-sizing: border-box; }
-html { min-height: 100%; background: var(--color-page); }
+html { min-height: 100%; background: var(--color-page); overflow-x: hidden; }
 body, #root { min-height: 100vh; min-height: 100dvh; }
-body { min-width: 320px; margin: 0; background: var(--color-page); color: var(--color-text); font-family: var(--font-ui); transition: background-color var(--duration-standard) var(--ease-out), color var(--duration-standard) var(--ease-out); }
+body { min-width: 320px; margin: 0; overflow-x: hidden; background: var(--color-page); color: var(--color-text); font-family: var(--font-ui); transition: background-color var(--duration-standard) var(--ease-out), color var(--duration-standard) var(--ease-out); }
 button, input { font: inherit; }
 button { touch-action: manipulation; }
 a { color: inherit; }
 :focus-visible { outline: 3px solid var(--color-action); outline-offset: 3px; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 1ms !important; scroll-behavior: auto !important; transition-duration: 1ms !important; } }
+
+@supports (padding: env(safe-area-inset-bottom)) {
+  body { padding-bottom: env(safe-area-inset-bottom); }
+}

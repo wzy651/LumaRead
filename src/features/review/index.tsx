@@ -1,1 +1,1 @@
-export function QuickReviewPage() { return null }
+export { QuickReviewPage } from './QuickReviewPage'

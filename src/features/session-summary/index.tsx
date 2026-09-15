@@ -1,1 +1,1 @@
-export function SessionSummaryPage() { return null }
+export { SessionSummaryPage } from './SessionSummaryPage'

@@ -2,8 +2,8 @@ import type { ReviewItem } from '../domain'
 import { vocabularyItems } from './vocabulary'
 
 export const reviewItems: ReviewItem[] = [
-  { id: 'review-reluctantly', vocabularyId: 'reluctantly', prompt: 'Hermione ______ followed him into the room.', answer: 'reluctantly', sourceSentence: vocabularyItems[0].sourceSentence },
-  { id: 'review-intervention', vocabularyId: 'intervention', prompt: 'His ______ changed the outcome.', answer: 'intervention', sourceSentence: vocabularyItems[1].sourceSentence },
-  { id: 'review-glance', vocabularyId: 'glance', prompt: 'She gave him a quick ______.', answer: 'glance', sourceSentence: vocabularyItems[2].sourceSentence },
-  { id: 'review-hesitate', vocabularyId: 'hesitate', prompt: 'Do not ______ to ask for help.', answer: 'hesitate', sourceSentence: vocabularyItems[3].sourceSentence },
+  { id: 'review-reluctantly', vocabularyId: 'reluctantly', prompt: 'Elizabeth ______ followed Jane into the drawing room.', answer: 'reluctantly', sourceSentence: vocabularyItems[0].sourceSentence },
+  { id: 'review-glance', vocabularyId: 'glance', prompt: 'Elizabeth cast Darcy a quick ______ before answering.', answer: 'glance', sourceSentence: vocabularyItems[2].sourceSentence },
+  { id: 'review-hesitate', vocabularyId: 'hesitate', prompt: 'Jane did not ______ before offering a gentler account.', answer: 'hesitate', sourceSentence: vocabularyItems[3].sourceSentence },
+  { id: 'review-murmur', vocabularyId: 'murmur', prompt: 'Jane ______ that the matter was best left alone.', answer: 'murmured', sourceSentence: vocabularyItems[4].sourceSentence },
 ]

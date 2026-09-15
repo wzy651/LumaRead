@@ -212,6 +212,7 @@
   font-family: var(--font-ui);
   font-size: 0.78rem;
 }
+.reader-prose blockquote { margin: 1.4em 0; padding-left: 1em; border-left: 3px solid var(--color-accent); color: var(--color-text-muted); }.reader-prose hr { margin: 2em 0; border: 0; border-top: 1px solid var(--color-border); }.reader-section-nav, .reader-toc { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); margin-top: var(--space-8); font-family: var(--font-ui); }.reader-section-nav button, .reader-toc button { min-height: 44px; border: 1px solid var(--color-border); border-radius: var(--radius-button); background: var(--color-surface); color: var(--color-text); cursor: pointer; padding: 0 var(--space-3); }.reader-toc { align-items: stretch; flex-direction: column; margin: 0; }.reader-toc button { text-align: left; }.reader-toc button[aria-current='page'] { color: var(--color-action); border-color: var(--color-accent); }
 
 .reading-settings, .reader-more-menu { display: grid; gap: var(--space-4); }
 .reading-settings h2, .reader-more-menu h2 { margin: 0; font-size: 1.15rem; }

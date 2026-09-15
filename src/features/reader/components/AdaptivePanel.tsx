@@ -7,7 +7,7 @@ interface AdaptivePanelProps {
   isMobile: boolean
   label: string
   onClose: () => void
-  variant: 'dictionary' | 'sentence' | 'settings' | 'more'
+  variant: 'dictionary' | 'sentence' | 'settings' | 'more' | 'toc'
 }
 
 interface PanelPosition {

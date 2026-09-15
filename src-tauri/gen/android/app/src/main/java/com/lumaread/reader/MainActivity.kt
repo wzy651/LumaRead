@@ -1,4 +1,4 @@
-package com.lumaread.app
+package com.lumaread.reader
 
 import android.os.Bundle
 import androidx.activity.enableEdgeToEdge

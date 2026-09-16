@@ -19,6 +19,11 @@ function titleFromFile(fileName: string) {
   return fileName.replace(/\.docx$/i, '') || 'Untitled document'
 }
 
+function hasZipSignature(arrayBuffer: ArrayBuffer) {
+  const bytes = new Uint8Array(arrayBuffer)
+  return bytes.length === 4 && bytes[0] === 0x50 && bytes[1] === 0x4b && bytes[2] === 0x03 && bytes[3] === 0x04
+}
+
 function textOf(element: Element) {
   return (element.textContent ?? '').replace(/\s+/g, ' ').trim()
 }
@@ -48,8 +53,7 @@ async function readCoreMetadata(zip: JSZip): Promise<Partial<DocumentMetadata>> 
 }
 
 async function openDocx(arrayBuffer: ArrayBuffer) {
-  const bytes = new Uint8Array(arrayBuffer)
-  if (bytes.length < 4 || bytes[0] !== 0x50 || bytes[1] !== 0x4b || bytes[2] !== 0x03 || bytes[3] !== 0x04) {
+  if (!hasZipSignature(arrayBuffer.slice(0, 4))) {
     throw new DocumentError('invalid-document', 'This file is not a valid DOCX document.')
   }
 
@@ -150,8 +154,7 @@ export const docxAdapter: DocumentAdapter = {
   async supports(source) {
     if (!source.fileName.toLowerCase().endsWith('.docx') || source.size === 0) return false
     try {
-      await openDocx(await source.blob.arrayBuffer())
-      return true
+      return hasZipSignature(await source.blob.slice(0, 4).arrayBuffer())
     } catch {
       return false
     }
@@ -177,7 +180,9 @@ export const docxAdapter: DocumentAdapter = {
     } catch {
       throw new DocumentError('parse-failed', 'LumaRead could not convert this DOCX document.')
     }
-    const sections = sectionsFrom(blocksFromHtml(html))
+    const blocks = blocksFromHtml(html)
+    if (!blocks.length) throw new DocumentError('empty-file', 'This DOCX file does not contain readable text.')
+    const sections = sectionsFrom(blocks)
     const reliableHeadings = sections.filter((section) => section.title).length
     return {
       metadata: { title: coreMetadata.title || titleFromFile(source.fileName), author: coreMetadata.author, language: coreMetadata.language, sectionCount: sections.length },

@@ -31,6 +31,25 @@ async function source(options: DocxOptions = {}, fileName = 'example.docx'): Pro
 }
 
 describe('DOCX adapter', () => {
+  it('checks only the first four Blob bytes when testing support', async () => {
+    const headerRead = vi.fn(async () => new Uint8Array([0x50, 0x4b, 0x03, 0x04]).buffer)
+    const fullRead = vi.fn(async () => { throw new Error('supports must not read the complete file') })
+    const slice = vi.fn(() => ({ arrayBuffer: headerRead }))
+    const blob = { size: 1024, slice, arrayBuffer: fullRead } as unknown as Blob
+    await expect(docxAdapter.supports({ blob, fileName: 'large.docx', size: 1024 })).resolves.toBe(true)
+    expect(slice).toHaveBeenCalledExactlyOnceWith(0, 4)
+    expect(headerRead).toHaveBeenCalledOnce()
+    expect(fullRead).not.toHaveBeenCalled()
+  })
+
+  it('reads the complete DOCX Blob exactly once while parsing', async () => {
+    const input = await source()
+    const fullRead = vi.fn(input.blob.arrayBuffer.bind(input.blob))
+    const blob = { ...input.blob, arrayBuffer: fullRead } as Blob
+    await expect(docxAdapter.parse({ ...input, blob })).resolves.toMatchObject({ metadata: { title: 'example' } })
+    expect(fullRead).toHaveBeenCalledOnce()
+  })
+
   it('maps paragraphs, headings, lists, quotes, and table rows into readable blocks', async () => {
     const parsed = await docxAdapter.parse(await source({ paragraphs: [{ text: 'Chapter One', style: 'Heading1' }, { text: 'Section', style: 'Heading2' }, { text: 'Plain' }, { text: 'First', list: 'ordered' }, { text: 'Bullet', list: 'unordered' }, { text: 'Quoted', style: 'Quote' }], table: [['Name', 'Value'], ['One', '1']] }))
     expect(parsed.sections[0].blocks.map(({ type, text }) => ({ type, text }))).toEqual([{ type: 'heading', text: 'Chapter One' }, { type: 'heading', text: 'Section' }, { type: 'paragraph', text: 'Plain' }, { type: 'list-item', text: 'First' }, { type: 'list-item', text: 'Bullet' }, { type: 'blockquote', text: 'Quoted' }, { type: 'paragraph', text: 'Name | Value' }, { type: 'paragraph', text: 'One | 1' }])
@@ -68,11 +87,8 @@ describe('DOCX adapter', () => {
     await expect(docxAdapter.parse({ blob: nonDocxZip, fileName: 'archive.docx', size: nonDocxZip.size })).rejects.toMatchObject({ code: 'invalid-document' })
   })
 
-  it('represents a valid empty document as one empty section with stable ids', async () => {
+  it('rejects a valid DOCX with no readable blocks', async () => {
     const input = await source({ paragraphs: [] })
-    const first = await docxAdapter.parse(input)
-    const second = await docxAdapter.parse(input)
-    expect(first.sections).toEqual([{ id: 'section-0', order: 0, blocks: [] }])
-    expect(second.sections).toEqual(first.sections)
+    await expect(docxAdapter.parse(input)).rejects.toMatchObject({ code: 'empty-file' })
   })
 })

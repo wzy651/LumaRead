@@ -1,4 +1,4 @@
-import { indexedDB } from 'fake-indexeddb'
+import { IDBDatabase, indexedDB } from 'fake-indexeddb'
 import { afterEach, describe, expect, it } from 'vitest'
 import type { ImportedDocument, StoredDocument } from '../domain/documents'
 import { databaseName, databaseVersion, IndexedDbDocumentRepository, MemoryDocumentRepository } from './document-repository'
@@ -14,3 +14,16 @@ describe('document repositories', () => {
   it('migrates v1 string content and supplies safe capabilities', async () => { const db = await openV1(); const transaction = db.transaction('documents', 'readwrite'); transaction.objectStore('documents').put({ document, source: new Blob(['one']), sections: [{ id: 'legacy', order: 0, content: ['legacy paragraph'] }] }); await new Promise<void>((resolve) => { transaction.oncomplete = () => resolve() }); db.close(); const migrated = await new IndexedDbDocumentRepository().getDocument('one'); expect(migrated).toMatchObject({ capabilities: { reflowable: true }, sections: [{ blocks: [{ type: 'paragraph', text: 'legacy paragraph' }] }] }) })
   it('reports unavailable storage without leaking platform errors', async () => { const savedWindow = globalThis.window; Object.assign(globalThis, { window: undefined }); try { await expect(new IndexedDbDocumentRepository().listDocuments()).rejects.toMatchObject({ code: 'storage-failed' }) } finally { Object.assign(globalThis, { window: savedWindow }) } })
 })
+  it('converts an IndexedDB transaction abort into a DocumentError', async () => {
+    const originalTransaction = IDBDatabase.prototype.transaction
+    IDBDatabase.prototype.transaction = function abortingTransaction(this: IDBDatabase, storeNames: string | string[], mode?: IDBTransactionMode) {
+      const transaction = originalTransaction.call(this, storeNames, mode)
+      if (storeNames === 'locations' && mode === 'readwrite') queueMicrotask(() => transaction.abort())
+      return transaction
+    }
+    try {
+      await expect(new IndexedDbDocumentRepository().saveLocation({ documentId: 'one', sectionId: 's', sectionIndex: 0, progressPercent: 42, updatedAt: document.updatedAt })).rejects.toMatchObject({ code: 'storage-failed' })
+    } finally {
+      IDBDatabase.prototype.transaction = originalTransaction
+    }
+  })

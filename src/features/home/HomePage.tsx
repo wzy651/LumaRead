@@ -1,5 +1,5 @@
 import { ThemeToggle } from '../../components/ui'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { getDocumentRepository, getReadingActivityRepository } from '../../storage'
 import { HomeReadingService, type HomeReadingViewModel } from './home-reading-service'
 import { ContinueReadingCard } from './ContinueReadingCard'
@@ -11,8 +11,10 @@ import './home.css'
 
 export function HomePage() {
   const [reading, setReading] = useState<HomeReadingViewModel>({ recentlyRead: [] })
-  const refresh = useCallback(() => { void new HomeReadingService(getDocumentRepository(), getReadingActivityRepository()).getViewModel().then(setReading).catch(() => setReading({ recentlyRead: [] })) }, [])
-  useEffect(() => { refresh(); window.addEventListener('readingactivitychanged', refresh); window.addEventListener('focus', refresh); return () => { window.removeEventListener('readingactivitychanged', refresh); window.removeEventListener('focus', refresh) } }, [refresh])
+  const latestRequest = useRef(0)
+  const mounted = useRef(true)
+  const refresh = useCallback(() => { const request = ++latestRequest.current; void new HomeReadingService(getDocumentRepository(), getReadingActivityRepository()).getViewModel().then((next) => { if (mounted.current && request === latestRequest.current) setReading(next) }).catch(() => undefined) }, [])
+  useEffect(() => { mounted.current = true; refresh(); window.addEventListener('readingactivitychanged', refresh); window.addEventListener('focus', refresh); return () => { mounted.current = false; window.removeEventListener('readingactivitychanged', refresh); window.removeEventListener('focus', refresh) } }, [refresh])
 
   return (
     <div className="home-shell">

@@ -1,4 +1,5 @@
 import { ArrowRight } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { Progress } from '../../components/ui'
 import type { HomeReadingItem } from './home-reading-service'
 import { BookCover } from './BookCover'
@@ -35,7 +36,7 @@ export function RecentlyRead({ books }: RecentlyReadProps) {
                   value={book.progressPercent}
                 />}
               </div>}
-              <a className="home-text-link" href={book.route}>Continue <ArrowRight aria-hidden="true" size={14} /></a>
+              <Link className="home-text-link" to={book.route}>Continue <ArrowRight aria-hidden="true" size={14} /></Link>
             </div>
           </article>
         ))}

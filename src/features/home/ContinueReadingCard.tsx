@@ -7,6 +7,7 @@ import { BookCover } from './BookCover'
 interface ContinueReadingCardProps {
   item?: HomeReadingItem
 }
+export function hasReliableProgress(item: Pick<HomeReadingItem, 'progressPercent'>): item is Pick<HomeReadingItem, 'progressPercent'> & { progressPercent: number } { return item.progressPercent !== undefined }
 
 export function ContinueReadingCard({ item }: ContinueReadingCardProps) {
   if (!item) return <Card as="section" aria-labelledby="continue-reading-title" className="home-continue-card home-continue-card--empty"><div className="home-continue-card__body"><p className="home-eyebrow">Your reading</p><h2 id="continue-reading-title">Choose something to read</h2><p className="home-continue-card__author">Your next quiet chapter is in the library.</p><Link className="home-primary-action" to="/library">Open Library<ArrowRight aria-hidden="true" size={18} /></Link></div></Card>
@@ -25,10 +26,7 @@ export function ContinueReadingCard({ item }: ContinueReadingCardProps) {
             <span>{item.locationLabel}</span>
             <span>{item.progressPercent === undefined ? '' : `${item.progressPercent}%`}</span>
           </div>
-          <Progress
-            label={`${item.title} reading progress: ${item.progressPercent}%`}
-            value={item.progressPercent ?? 0}
-          />
+          {hasReliableProgress(item) && <Progress label={`${item.title} reading progress: ${item.progressPercent}%`} value={item.progressPercent} />}
         </div>}
 
         <Link className="home-primary-action" to={item.route}>

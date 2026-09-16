@@ -79,12 +79,26 @@ export function paragraphsFromTextItems(items: unknown[]): string[] {
   return paragraphs
 }
 
+function assertPdfHeader(bytes: Uint8Array) {
+  if (bytes.length < 5) throw new DocumentError('invalid-document', 'This file is not a valid PDF.')
+  const header = new TextDecoder('ascii').decode(bytes.slice(0, 5))
+  if (header !== '%PDF-') throw new DocumentError('invalid-document', 'This file is not a valid PDF.')
+}
+
+async function headerFrom(source: DocumentSource) {
+  try {
+    const header = new Uint8Array(await source.blob.slice(0, 5).arrayBuffer())
+    assertPdfHeader(header)
+  } catch (error) {
+    if (error instanceof DocumentError) throw error
+    throw new DocumentError('read-failed', 'LumaRead could not read this PDF file.')
+  }
+}
+
 async function bytesFrom(source: DocumentSource) {
   try {
     const bytes = new Uint8Array(await source.blob.arrayBuffer())
-    if (bytes.length < 5) throw new DocumentError('invalid-document', 'This file is not a valid PDF.')
-    const header = new TextDecoder('ascii').decode(bytes.slice(0, 5))
-    if (header !== '%PDF-') throw new DocumentError('invalid-document', 'This file is not a valid PDF.')
+    assertPdfHeader(bytes)
     return bytes
   } catch (error) {
     if (error instanceof DocumentError) throw error
@@ -107,7 +121,7 @@ export const pdfAdapter: DocumentAdapter = {
   format: 'pdf',
   async supports(source) {
     if (!source.fileName.toLowerCase().endsWith('.pdf')) return false
-    try { await bytesFrom(source); return true } catch { return false }
+    try { await headerFrom(source); return true } catch { return false }
   },
   async parse(source): Promise<ParsedDocument> {
     const data = await bytesFrom(source)

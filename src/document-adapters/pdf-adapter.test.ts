@@ -24,6 +24,16 @@ function minimalPdf() {
   return body
 }
 function source(contents = minimalPdf(), fileName = 'book.pdf'): DocumentSource { const blob = new Blob([contents]); return { blob, fileName, size: blob.size } }
+class CountingBlob extends Blob {
+  arrayBufferCalls = 0
+  slices: Array<[number | undefined, number | undefined]> = []
+  override arrayBuffer() { this.arrayBufferCalls += 1; return super.arrayBuffer() }
+  override slice(start?: number, end?: number, contentType?: string) { this.slices.push([start, end]); return super.slice(start, end, contentType) }
+}
+function countedSource(contents = minimalPdf()): { source: DocumentSource; blob: CountingBlob } {
+  const blob = new CountingBlob([contents])
+  return { source: { blob, fileName: 'counted.pdf', size: blob.size }, blob }
+}
 function item(str: string, x: number, y: number, options: Partial<{ width: number; height: number; hasEOL: boolean }> = {}) { return { str, transform: [1, 0, 0, 1, x, y], width: 20, height: 10, hasEOL: false, ...options } }
 function configure(pages: unknown[][], metadata: { info: object; metadata: { get(name: string): unknown } | null } = { info: {}, metadata: null }) {
   const document = { numPages: pages.length, getMetadata: vi.fn().mockResolvedValue(metadata), getPage: vi.fn((page: number) => Promise.resolve({ getTextContent: vi.fn().mockResolvedValue({ items: pages[page - 1] }), cleanup: vi.fn() })), destroy: state.destroy }
@@ -42,6 +52,19 @@ describe('PDF adapter', () => {
     expect(state.getDocument).toHaveBeenCalledWith(expect.objectContaining({ data: expect.any(Uint8Array), disableAutoFetch: true, disableRange: true }))
     expect(state.destroy).toHaveBeenCalledOnce()
     expect(state.taskDestroy).not.toHaveBeenCalled()
+  })
+  it('reads only the first five Blob bytes when checking support', async () => {
+    const counted = countedSource()
+    await expect(pdfAdapter.supports(counted.source)).resolves.toBe(true)
+    expect(counted.blob.slices).toEqual([[0, 5]])
+    expect(counted.blob.arrayBufferCalls).toBe(0)
+  })
+  it('reads the complete Blob exactly once while parsing', async () => {
+    configure([[item('Text', 0, 100, { hasEOL: true })]])
+    const counted = countedSource()
+    await expect(pdfAdapter.parse(counted.source)).resolves.toMatchObject({ metadata: { title: 'counted' } })
+    expect(counted.blob.arrayBufferCalls).toBe(1)
+    expect(counted.blob.slices).toEqual([])
   })
   it('keeps page order, permits empty pages, and falls back to the filename title', async () => {
     configure([[], [item('Second page', 0, 100, { hasEOL: true })]])

@@ -28,6 +28,9 @@
     "react-dom": "19.3.0",
     "react-router-dom": "7.18.3"
   },
+  "overrides": {
+    "@xmldom/xmldom": "0.8.15"
+  },
   "devDependencies": {
     "@eslint/js": "10.0.1",
     "@tauri-apps/cli": "2.9.5",

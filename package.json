@@ -19,9 +19,10 @@
   },
   "dependencies": {
     "@tauri-apps/api": "2.9.0",
-    "jszip": "3.10.1",
+    "jszip": "3.10.2",
     "lucide-react": "1.45.0",
     "mammoth": "1.12.3",
+    "pdfjs-dist": "5.4.624",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-router-dom": "7.18.3"

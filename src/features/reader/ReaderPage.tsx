@@ -15,6 +15,7 @@ import { readerChapter, sentenceAids, type ReaderSegment } from './fixtures/read
 import { useReaderChromeVisibility } from './useReaderChromeVisibility'
 import { useReaderSettings } from './useReaderSettings'
 import { ImportedDocumentReader } from './documents/ImportedDocumentReader'
+import { readerLanguage, resolveReaderLayout } from './readerLayout'
 import './reader.css'
 
 type ActivePanel =
@@ -67,16 +68,12 @@ export function ReaderPage() {
   }
   const activeVocabulary = activePanel?.kind === 'dictionary' ? vocabularyById.get(activePanel.vocabularyId) : undefined
   const activeSentenceAid = activePanel?.kind === 'sentence' ? sentenceAids[activePanel.aidId] : undefined
-  const lineHeight = settings.lineHeight === 'compact'
-    ? (isMobile ? 1.54 : 1.58)
-    : settings.lineHeight === 'relaxed'
-      ? (isMobile ? 1.84 : 1.88)
-      : (isMobile ? 1.68 : 1.72)
+  const layout = resolveReaderLayout(settings, isMobile)
 
   return <div className="reader-shell">
     <ReaderChrome bookTitle={currentBook.title} chapterLabel={readerChapter.chapterLabel} chromeRef={chromeRef} isMobile={isMobile} onBack={exitReader} onMore={(anchor) => openChromePanel('more', anchor)} onSettings={(anchor) => openChromePanel('settings', anchor)} visible={visible} />
     <main className="reader-main" onClick={handleReadingAreaClick}>
-      <article aria-labelledby="reader-chapter-title" className="reader-article" style={{ '--reader-font-scale': settings.fontScale, '--reader-line-height': lineHeight, '--reader-font-family': settings.fontFamily === 'serif' ? 'var(--font-reading)' : 'var(--font-ui)' } as CSSProperties}>
+      <article aria-labelledby="reader-chapter-title" className={`reader-article ${layout.className}`} lang={readerLanguage('en')} style={layout.styleVariables as CSSProperties}>
         <header className="reader-chapter-heading"><div className="reader-chapter-heading__mark"><BookOpen aria-hidden="true" size={16} />{readerChapter.chapterLabel}</div><h1 id="reader-chapter-title">{readerChapter.chapterTitle}</h1><p>{readerChapter.readingHint}</p></header>
         <div className="reader-prose">{readerChapter.paragraphs.map((paragraph, paragraphIndex) => <p key={paragraphIndex}>{paragraph.map((segment, segmentIndex) => renderSegment(segment, paragraphIndex, segmentIndex))}</p>)}</div>
         <footer className="reader-chapter-end"><Sparkles aria-hidden="true" size={15} /><span>A quiet place to stop, whenever you are ready.</span></footer>

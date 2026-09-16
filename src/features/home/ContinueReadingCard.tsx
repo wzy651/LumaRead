@@ -1,36 +1,37 @@
 import { ArrowRight } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Card, Progress } from '../../components/ui'
-import type { Book } from '../../domain'
+import type { HomeReadingItem } from './home-reading-service'
 import { BookCover } from './BookCover'
 
 interface ContinueReadingCardProps {
-  book: Book
+  item?: HomeReadingItem
 }
 
-export function ContinueReadingCard({ book }: ContinueReadingCardProps) {
+export function ContinueReadingCard({ item }: ContinueReadingCardProps) {
+  if (!item) return <Card as="section" aria-labelledby="continue-reading-title" className="home-continue-card home-continue-card--empty"><div className="home-continue-card__body"><p className="home-eyebrow">Your reading</p><h2 id="continue-reading-title">Choose something to read</h2><p className="home-continue-card__author">Your next quiet chapter is in the library.</p><Link className="home-primary-action" to="/library">Open Library<ArrowRight aria-hidden="true" size={18} /></Link></div></Card>
   return (
     <Card as="section" aria-labelledby="continue-reading-title" className="home-continue-card">
       <div aria-hidden="true" className="home-continue-card__glow" />
-      <BookCover book={book} className="home-continue-card__cover" />
+      <BookCover book={item} className="home-continue-card__cover" />
 
       <div className="home-continue-card__body">
         <p className="home-eyebrow">Continue reading</p>
-        <h2 id="continue-reading-title">{book.title}</h2>
-        <p className="home-continue-card__author">{book.author}</p>
+        <h2 id="continue-reading-title">{item.title}</h2>
+        <p className="home-continue-card__author">{item.author ?? item.format}</p>
 
-        <div className="home-continue-card__progress">
+        {(item.locationLabel || item.progressPercent !== undefined) && <div className="home-continue-card__progress">
           <div className="home-progress-copy">
-            <span>{book.progress.locationLabel}</span>
-            <span>{book.progress.completedPercent}%</span>
+            <span>{item.locationLabel}</span>
+            <span>{item.progressPercent === undefined ? '' : `${item.progressPercent}%`}</span>
           </div>
           <Progress
-            label={`${book.title} reading progress: ${book.progress.completedPercent}%`}
-            value={book.progress.completedPercent}
+            label={`${item.title} reading progress: ${item.progressPercent}%`}
+            value={item.progressPercent ?? 0}
           />
-        </div>
+        </div>}
 
-        <Link className="home-primary-action" to={`/reader/${book.id}`}>
+        <Link className="home-primary-action" to={item.route}>
           Keep reading
           <ArrowRight aria-hidden="true" size={18} strokeWidth={1.9} />
         </Link>

@@ -1,0 +1,3 @@
+import { describe, expect, it } from 'vitest'
+import { MemoryReadingActivityRepository } from './reading-activity-repository'
+describe('reading activity repository', () => { it('preserves first open while updating later activity', async () => { const repository = new MemoryReadingActivityRepository(); await repository.recordOpen('builtin', 'same', '2026-01-01T00:00:00.000Z'); const result = await repository.recordProgress({ contentKind: 'builtin', documentId: 'same', lastReadAt: '2026-01-02T00:00:00.000Z', locationLabel: 'Chapter 2', progressPercent: 20 }); expect(result).toMatchObject({ key: 'builtin:same', firstOpenedAt: '2026-01-01T00:00:00.000Z', locationLabel: 'Chapter 2' }); expect(await repository.getActivity('imported', 'same')).toBeUndefined() }) })

@@ -1,13 +1,14 @@
-import { LockKeyhole } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 import { Progress } from '../../components/ui'
-import type { Book } from '../../domain'
+import type { HomeReadingItem } from './home-reading-service'
 import { BookCover } from './BookCover'
 
 interface RecentlyReadProps {
-  books: Book[]
+  books: HomeReadingItem[]
 }
 
 export function RecentlyRead({ books }: RecentlyReadProps) {
+  if (!books.length) return null
   return (
     <section aria-labelledby="recently-read-title" className="home-recent">
       <div className="home-section-heading">
@@ -15,7 +16,7 @@ export function RecentlyRead({ books }: RecentlyReadProps) {
           <p className="home-eyebrow">Your shelf</p>
           <h2 id="recently-read-title">Recently read</h2>
         </div>
-        <span className="home-section-heading__note">Library coming soon</span>
+        <span className="home-section-heading__note">Your reading history</span>
       </div>
 
       <div className="home-recent__grid">
@@ -25,19 +26,16 @@ export function RecentlyRead({ books }: RecentlyReadProps) {
             <div className="home-recent-book__body">
               <div>
                 <h3>{book.title}</h3>
-                <p>{book.author}</p>
+                <p>{book.author ?? book.format}</p>
               </div>
-              <div className="home-recent-book__progress">
-                <span>{book.progress.locationLabel}</span>
-                <Progress
-                  label={`${book.title} reading progress: ${book.progress.completedPercent}%`}
-                  value={book.progress.completedPercent}
-                />
-              </div>
-              <span aria-label={`${book.title} preview coming soon`} className="home-text-link home-text-link--muted">
-                Preview soon
-                <LockKeyhole aria-hidden="true" size={14} strokeWidth={1.8} />
-              </span>
+              {(book.locationLabel || book.progressPercent !== undefined) && <div className="home-recent-book__progress">
+                <span>{book.locationLabel}</span>
+                {book.progressPercent !== undefined && <Progress
+                  label={`${book.title} reading progress: ${book.progressPercent}%`}
+                  value={book.progressPercent}
+                />}
+              </div>}
+              <a className="home-text-link" href={book.route}>Continue <ArrowRight aria-hidden="true" size={14} /></a>
             </div>
           </article>
         ))}

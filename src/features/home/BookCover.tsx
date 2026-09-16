@@ -1,7 +1,7 @@
-import type { Book } from '../../domain'
+import type { HomeReadingItem } from './home-reading-service'
 
 interface BookCoverProps {
-  book: Book
+  book: Pick<HomeReadingItem, 'id' | 'title' | 'author' | 'coverUrl' | 'format'>
   className?: string
 }
 
@@ -23,7 +23,7 @@ export function BookCover({ book, className = '' }: BookCoverProps) {
     <div aria-label={`Cover of ${book.title}`} className={classes} data-tone={getCoverTone(book.id)} role="img">
       <span aria-hidden="true" className="home-book-cover__ornament" />
       <span className="home-book-cover__title">{book.title}</span>
-      <span className="home-book-cover__author">{book.author}</span>
+      <span className="home-book-cover__author">{book.author ?? book.format}</span>
     </div>
   )
 }

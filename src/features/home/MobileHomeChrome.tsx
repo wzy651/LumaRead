@@ -34,14 +34,14 @@ export function MobileShortcuts() {
   )
 }
 
-export function MobileBottomNavigation({ currentBookId }: { currentBookId: string }) {
+export function MobileBottomNavigation() {
   return (
     <nav aria-label="Mobile primary navigation" className="home-mobile-nav">
       <Link aria-current="page" className="home-mobile-nav__item" to="/">
         <Home aria-hidden="true" size={20} strokeWidth={1.9} />
         <span>Home</span>
       </Link>
-      <Link className="home-mobile-nav__item" to={`/reader/${currentBookId}`}>
+      <Link className="home-mobile-nav__item" to="/read">
         <BookOpen aria-hidden="true" size={20} strokeWidth={1.9} />
         <span>Read</span>
       </Link>

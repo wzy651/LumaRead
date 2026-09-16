@@ -1,4 +1,4 @@
-import { useMemo, useState, type CSSProperties, type MouseEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent } from 'react'
 import { BookOpen, Sparkles } from 'lucide-react'
 import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { MEDIA_QUERIES, useMediaQuery } from '../../app/responsive'
@@ -16,6 +16,7 @@ import { useReaderChromeVisibility } from './useReaderChromeVisibility'
 import { useReaderSettings } from './useReaderSettings'
 import { ImportedDocumentReader } from './documents/ImportedDocumentReader'
 import { readerLanguage, resolveReaderLayout } from './readerLayout'
+import { getReadingActivityRepository } from '../../storage'
 import './reader.css'
 
 type ActivePanel =
@@ -42,6 +43,8 @@ export function ReaderPage() {
   const [learningIds, setLearningIds] = useState<Set<string>>(() => new Set(vocabularyItems.filter((item) => item.addedToLearning).map((item) => item.id)))
   const [moreVisible, setMoreVisible] = useState(false)
   const vocabularyById = useMemo(() => new Map(vocabularyItems.map((item) => [item.id, item])), [])
+  const activityTimer = useRef<number | undefined>(undefined)
+  useEffect(() => { if (bookId !== readerChapter.bookId) return; void getReadingActivityRepository().recordOpen('builtin', readerChapter.bookId).catch(() => undefined); const save = () => { const maximum = Math.max(1, document.documentElement.scrollHeight - window.innerHeight); const now = new Date().toISOString(); void getReadingActivityRepository().recordProgress({ contentKind: 'builtin', documentId: readerChapter.bookId, sectionId: readerChapter.chapterLabel, sectionIndex: 0, locationLabel: readerChapter.chapterLabel, progressPercent: Math.min(100, Math.round(window.scrollY / maximum * 100)), lastReadAt: now }).catch(() => undefined) }; const onScroll = () => { window.clearTimeout(activityTimer.current); activityTimer.current = window.setTimeout(save, 650) }; window.addEventListener('scroll', onScroll, { passive: true }); return () => { window.removeEventListener('scroll', onScroll); window.clearTimeout(activityTimer.current); save() } }, [bookId])
 
   if (bookId && !books.some((book) => book.id === bookId)) return <ImportedDocumentReader documentId={bookId} />
   if (!bookId || bookId !== readerChapter.bookId) return <Navigate replace to={'/reader/' + currentBook.id} />

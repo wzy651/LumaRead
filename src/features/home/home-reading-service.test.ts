@@ -1,0 +1,4 @@
+import { describe, expect, it } from 'vitest'
+import { HomeReadingService } from './home-reading-service'
+import { MemoryDocumentRepository, MemoryReadingActivityRepository } from '../../storage'
+describe('HomeReadingService', () => { it('uses opened documents only and removes the current item from recent', async () => { const documents = new MemoryDocumentRepository(); const activities = new MemoryReadingActivityRepository(); await activities.recordOpen('builtin', 'pride-and-prejudice', '2026-01-01T00:00:00.000Z'); await activities.recordProgress({ contentKind: 'builtin', documentId: 'pride-and-prejudice', lastReadAt: '2026-01-01T00:01:00.000Z' }); const model = await new HomeReadingService(documents, activities).getViewModel(); expect(model.continueReading?.id).toBe('pride-and-prejudice'); expect(model.recentlyRead).toEqual([]) }) })

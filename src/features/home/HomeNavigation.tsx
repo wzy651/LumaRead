@@ -3,10 +3,7 @@ import type { LucideIcon } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { ThemeToggle } from '../../components/ui'
 
-interface HomeNavigationProps {
-  currentBookId: string
-  placement: 'sidebar' | 'tablet'
-}
+interface HomeNavigationProps { placement: 'sidebar' | 'tablet' }
 
 interface AvailableNavigationItem {
   icon: LucideIcon
@@ -32,10 +29,10 @@ export function BrandMark() {
   )
 }
 
-export function HomeNavigation({ currentBookId, placement }: HomeNavigationProps) {
+export function HomeNavigation({ placement }: HomeNavigationProps) {
   const items: NavigationItem[] = [
     { icon: Home, label: 'Home', to: '/', active: true },
-    { icon: BookOpen, label: 'Reading', to: `/reader/${currentBookId}` },
+    { icon: BookOpen, label: 'Reading', to: '/read' },
     { icon: RotateCcw, label: 'Quick review', to: '/review' },
     { icon: Library, label: 'Library', to: '/library' },
     { icon: BarChart3, label: 'Stats', upcoming: true },
@@ -73,11 +70,11 @@ export function HomeNavigation({ currentBookId, placement }: HomeNavigationProps
   )
 }
 
-export function Sidebar({ currentBookId }: { currentBookId: string }) {
+export function Sidebar() {
   return (
     <aside className="home-sidebar">
       <BrandMark />
-      <HomeNavigation currentBookId={currentBookId} placement="sidebar" />
+      <HomeNavigation placement="sidebar" />
       <div className="home-sidebar__footer">
         <ThemeToggle />
         <div>

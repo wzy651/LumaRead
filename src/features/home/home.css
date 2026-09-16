@@ -135,6 +135,8 @@
   box-shadow: var(--home-shadow);
 }
 
+.home-continue-card--empty.ui-card { grid-template-columns: minmax(0, 1fr); }
+
 .home-continue-card__glow {
   position: absolute;
   z-index: -1;

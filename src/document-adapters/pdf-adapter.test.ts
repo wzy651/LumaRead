@@ -79,9 +79,9 @@ describe('PDF adapter', () => {
   it('reconstructs spaces and paragraphs without joining words', () => {
     expect(paragraphsFromTextItems([item('Hello', 0, 100, { width: 25 }), item('world', 30, 100, { hasEOL: true }), item('Next', 0, 85, { hasEOL: true }), item('Paragraph', 0, 50, { hasEOL: true })])).toEqual(['Hello world Next', 'Paragraph'])
   })
-  it('rejects scanned PDFs with no readable text', async () => {
+  it('accepts scanned PDFs for original layout while disabling reflow and selection', async () => {
     configure([[]])
-    await expect(pdfAdapter.parse(source())).rejects.toMatchObject({ code: 'parse-failed', message: expect.stringMatching(/no readable text/i) })
+    await expect(pdfAdapter.parse(source())).resolves.toMatchObject({ capabilities: { reflowable: false, supportsOriginalLayout: true, supportsTextSelection: false } })
   })
   it('rejects malformed headers and maps damaged or password-protected PDFs to friendly errors', async () => {
     await expect(pdfAdapter.parse(source('not a pdf'))).rejects.toMatchObject({ code: 'invalid-document' })

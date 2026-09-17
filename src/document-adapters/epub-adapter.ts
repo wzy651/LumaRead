@@ -2,7 +2,7 @@ import ePub, { type Book, type NavItem } from 'epubjs'
 import type Section from 'epubjs/types/section'
 import { DocumentError, type DocumentAdapter, type DocumentBlock, type DocumentCapabilities, type DocumentSection, type DocumentSource, type ParsedDocument } from '../domain/documents'
 
-const capabilities = (hasTableOfContents: boolean): DocumentCapabilities => ({ reflowable: true, supportsTextSelection: true, supportsSearch: false, supportsTableOfContents: hasTableOfContents, supportsPagination: false, supportsReadAloud: false })
+const capabilities = (hasTableOfContents: boolean): DocumentCapabilities => ({ reflowable: true, supportsOriginalLayout: false, supportsTextSelection: true, supportsSearch: false, supportsTableOfContents: hasTableOfContents, supportsPagination: false, supportsReadAloud: false })
 const zipSignatures = [[0x50, 0x4b, 0x03, 0x04], [0x50, 0x4b, 0x05, 0x06], [0x50, 0x4b, 0x07, 0x08]]
 
 function fileTitle(fileName: string) { return fileName.replace(/\.epub$/i, '') || 'Untitled document' }

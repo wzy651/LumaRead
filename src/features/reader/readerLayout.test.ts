@@ -4,9 +4,9 @@ import { readerLanguage, resolveReaderLayout } from './readerLayout'
 
 describe('shared reader layout', () => {
   it('maps all page-width preferences to character-based desktop columns', () => {
-    expect(resolveReaderLayout({ ...readerSettingsDefaults, pageWidth: 'narrow' }, false).styleVariables['--reader-content-width']).toBe('54ch')
-    expect(resolveReaderLayout({ ...readerSettingsDefaults, pageWidth: 'comfortable' }, false).styleVariables['--reader-content-width']).toBe('64ch')
-    expect(resolveReaderLayout({ ...readerSettingsDefaults, pageWidth: 'wide' }, false).styleVariables['--reader-content-width']).toBe('74ch')
+    expect(resolveReaderLayout({ ...readerSettingsDefaults, textWidthCh: 48 }, false).styleVariables['--reader-content-width']).toBe('48ch')
+    expect(resolveReaderLayout({ ...readerSettingsDefaults, textWidthCh: 64 }, false).styleVariables['--reader-content-width']).toBe('64ch')
+    expect(resolveReaderLayout({ ...readerSettingsDefaults, textWidthCh: 80 }, false).styleVariables['--reader-content-width']).toBe('80ch')
   })
 
   it('uses automatic justification on desktop but not mobile, with explicit choices taking precedence', () => {
@@ -26,7 +26,7 @@ describe('shared reader layout', () => {
   })
 
   it('has a complete layout reset default without changing theme state', () => {
-    expect(readerSettingsDefaults).toEqual({ fontFamily: 'serif', fontScale: 1, lineHeight: 'comfortable', pageWidth: 'comfortable', textAlignment: 'auto' })
+    expect(readerSettingsDefaults).toEqual({ fontFamily: 'serif', fontScale: 1, lineHeight: 'comfortable', textWidthCh: 64, mobileSideMargin: 'comfortable', textAlignment: 'auto' })
   })
 
 })

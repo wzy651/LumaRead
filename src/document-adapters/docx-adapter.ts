@@ -4,6 +4,7 @@ import { DocumentError, type DocumentAdapter, type DocumentBlock, type DocumentC
 
 const baseCapabilities: Omit<DocumentCapabilities, 'supportsTableOfContents'> = {
   reflowable: true,
+  supportsOriginalLayout: false,
   supportsTextSelection: true,
   supportsSearch: false,
   supportsPagination: false,

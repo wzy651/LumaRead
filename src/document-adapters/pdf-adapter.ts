@@ -7,6 +7,7 @@ GlobalWorkerOptions.workerSrc = pdfWorkerUrl
 
 const capabilities: DocumentCapabilities = {
   reflowable: true,
+  supportsOriginalLayout: true,
   supportsTextSelection: true,
   supportsSearch: false,
   supportsTableOfContents: false,
@@ -142,9 +143,8 @@ export const pdfAdapter: DocumentAdapter = {
         sections.push({ id: `page-${pageNumber}`, title: `Page ${pageNumber}`, order: pageNumber - 1, blocks })
         page.cleanup()
       }
-      if (!readableText) throw new DocumentError('parse-failed', 'This PDF has no readable text. It may be a scanned document.')
       const metadata = metadataFrom(rawMetadata, source.fileName)
-      return { metadata: { ...metadata, sectionCount: sections.length }, sections, capabilities }
+      return { metadata: { ...metadata, sectionCount: sections.length }, sections, capabilities: { ...capabilities, reflowable: readableText, supportsTextSelection: readableText } }
     } catch (error) {
       if (error instanceof DocumentError) throw error
       throw friendlyPdfError(error)

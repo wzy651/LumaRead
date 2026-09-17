@@ -14,7 +14,7 @@ describe('reader settings v2', () => {
   it('migrates v1 while preserving the existing typography preferences', () => {
     const localStorage = storage({ [legacyReaderSettingsStorageKey]: JSON.stringify({ fontFamily: 'sans', fontScale: 1.15, lineHeight: 'relaxed' }) })
     vi.stubGlobal('window', { localStorage })
-    expect(readReaderSettings()).toEqual({ fontFamily: 'sans', fontScale: 1.15, lineHeight: 'relaxed', pageWidth: 'comfortable', textAlignment: 'auto' })
+    expect(readReaderSettings()).toEqual({ fontFamily: 'sans', fontScale: 1.15, lineHeight: 'relaxed', textWidthCh: 64, mobileSideMargin: 'comfortable', textAlignment: 'auto' })
     expect(localStorage.setItem).toHaveBeenCalledWith(readerSettingsStorageKey, expect.any(String))
   })
 
@@ -22,12 +22,12 @@ describe('reader settings v2', () => {
     const localStorage = storage({ [readerSettingsStorageKey]: JSON.stringify({ fontFamily: 'comic', fontScale: 9, lineHeight: 'spacious', pageWidth: 'extra', textAlignment: 'centre' }) })
     vi.stubGlobal('window', { localStorage })
     expect(readReaderSettings()).toEqual(readerSettingsDefaults)
-    expect(normalizeReaderSettings({ pageWidth: 'wide', textAlignment: 'justify' })).toMatchObject({ pageWidth: 'wide', textAlignment: 'justify' })
+    expect(normalizeReaderSettings({ textWidthCh: 74, textAlignment: 'justify' })).toMatchObject({ textWidthCh: 74, textAlignment: 'justify' })
   })
 
   it('keeps the migrated settings in memory when storage writes fail', () => {
     const localStorage = storage({ [legacyReaderSettingsStorageKey]: JSON.stringify({ fontScale: 1.1 }) }, true)
     vi.stubGlobal('window', { localStorage })
-    expect(readReaderSettings()).toMatchObject({ fontScale: 1.1, pageWidth: 'comfortable' })
+    expect(readReaderSettings()).toMatchObject({ fontScale: 1.1, textWidthCh: 64 })
   })
 })

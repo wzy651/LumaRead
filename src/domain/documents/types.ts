@@ -11,7 +11,7 @@ export type DocumentBlock =
   | { id: string; type: 'list-item'; text: string; order: number; ordered: boolean }
 export interface DocumentSection { id: string; title?: string; order: number; blocks: DocumentBlock[] }
 export interface ReaderLocation { documentId: string; sectionId: string; sectionIndex: number; progressPercent: number; updatedAt: string; pdf?: { mode: 'original' | 'reading'; zoomMode: 'comfortable' | 'fit-width' | 'fit-page' | 'actual' | 'custom'; zoom?: number; rotation: number; pageNumber: number } }
-export interface DocumentCapabilities { reflowable: boolean; supportsOriginalLayout?: boolean; supportsTextSelection: boolean; supportsSearch: boolean; supportsTableOfContents: boolean; supportsPagination: boolean; supportsReadAloud: boolean }
+export interface DocumentCapabilities { reflowable: boolean; supportsOriginalLayout: boolean; supportsTextSelection: boolean; supportsSearch: boolean; supportsTableOfContents: boolean; supportsPagination: boolean; supportsReadAloud: boolean }
 export interface ParsedDocument { metadata: DocumentMetadata; sections: DocumentSection[]; capabilities: DocumentCapabilities }
 export type DocumentErrorCode = 'unsupported-format' | 'empty-file' | 'file-too-large' | 'duplicate-document' | 'invalid-document' | 'read-failed' | 'parse-failed' | 'storage-failed'
 export class DocumentError extends Error { constructor(public readonly code: DocumentErrorCode, message: string) { super(message); this.name = 'DocumentError' } }

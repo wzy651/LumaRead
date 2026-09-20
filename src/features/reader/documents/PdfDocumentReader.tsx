@@ -12,6 +12,7 @@ import { PdfViewSettingsPanel } from './PdfViewSettingsPanel'
 import { clampCustomScale, clampPdfPage } from './pdfScale'
 import { usePdfDocument } from './usePdfDocument'
 import { usePdfLocation, type PdfLocationState } from './usePdfLocation'
+import { shouldTogglePdfChrome } from './pdfChrome'
 
 type Props = { document: ImportedDocument; source: Blob; sections: DocumentSection[]; capabilities: DocumentCapabilities; initialLocation?: ReaderLocation; isMobile: boolean; onBack: () => void }
 export function PdfDocumentReader({ document: imported, source, sections, capabilities, initialLocation, isMobile, onBack }: Props) {
@@ -23,7 +24,7 @@ export function PdfDocumentReader({ document: imported, source, sections, capabi
   const zoom = useCallback((delta: number) => setState((current) => ({ ...current, zoomMode: 'custom', zoom: clampCustomScale((current.zoomMode === 'custom' ? current.zoom : scale) + delta) })), [scale])
   const reportPageError = useCallback(() => setPageError(true), [])
   useEffect(() => { const onKey = (event: globalThis.KeyboardEvent) => { const element = event.target as HTMLElement; if (element.closest('input, textarea, select, button, .reader-panel')) return; if (event.key === 'ArrowLeft' || event.key === 'PageUp') { event.preventDefault(); changePage(state.page - 1) } if (event.key === 'ArrowRight' || event.key === 'PageDown') { event.preventDefault(); changePage(state.page + 1) } }; window.addEventListener('keydown', onKey); return () => window.removeEventListener('keydown', onKey) }, [changePage, state.page])
-  const clickPage = (event: MouseEvent<HTMLElement>) => { if (event.target !== event.currentTarget) return; if (isMobile) { if (visible) hide(); else reveal() } else reveal() }
+  const clickPage = (event: MouseEvent<HTMLElement>) => { if (!shouldTogglePdfChrome(event.target, event.currentTarget, window.getSelection()?.toString() ?? '')) return; if (isMobile) { if (visible) hide(); else reveal() } else reveal() }
   if (error) return <div className="reader-shell reader-message"><h1>Unable to open this PDF</h1><p>{error}</p><Link to="/library">Return to Library</Link></div>
   const label = `Page ${state.page} of ${sections.length}`
   return <div className="reader-shell pdf-reader" onClick={clickPage}><ReaderChrome bookTitle={imported.metadata.title} chapterLabel={label} chromeRef={chromeRef} isMobile={isMobile} onBack={onBack} onMore={(target) => setMoreAnchor(target)} onSettings={(target) => setViewAnchor(target)} pdf visible={visible} />

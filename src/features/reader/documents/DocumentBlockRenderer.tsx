@@ -4,11 +4,11 @@ import type { DocumentBlock } from '../../../domain/documents'
 function renderBlock(block: DocumentBlock): ReactNode {
   if (block.type === 'heading') {
     const Heading = `h${block.level}` as const
-    return <Heading key={block.id}>{block.text}</Heading>
+    return <Heading data-reader-block-id={block.id} key={block.id}>{block.text}</Heading>
   }
-  if (block.type === 'blockquote') return <blockquote key={block.id}>{block.text}</blockquote>
-  if (block.type === 'page-break') return <hr aria-label="Page break" key={block.id} />
-  return <p key={block.id}>{block.text}</p>
+  if (block.type === 'blockquote') return <blockquote data-reader-block-id={block.id} key={block.id}>{block.text}</blockquote>
+  if (block.type === 'page-break') return <hr aria-label="Page break" data-reader-block-id={block.id} key={block.id} />
+  return <p data-reader-block-id={block.id} key={block.id}>{block.text}</p>
 }
 
 export function DocumentBlockRenderer({ blocks }: { blocks: DocumentBlock[] }) {
@@ -18,7 +18,7 @@ export function DocumentBlockRenderer({ blocks }: { blocks: DocumentBlock[] }) {
   const flushList = () => {
     if (!listItems.length || ordered === undefined) return
     const List = ordered ? 'ol' : 'ul'
-    nodes.push(<List key={`list-${listItems[0].id}`}>{listItems.map((item) => <li key={item.id}>{item.text}</li>)}</List>)
+    nodes.push(<List key={`list-${listItems[0].id}`}>{listItems.map((item) => <li data-reader-block-id={item.id} key={item.id}>{item.text}</li>)}</List>)
     listItems = []
     ordered = undefined
   }

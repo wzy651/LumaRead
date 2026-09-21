@@ -17,6 +17,6 @@ const blocks: DocumentBlock[] = [
 
 describe('DocumentBlockRenderer', () => {
   it('groups only consecutive matching list items into valid lists while preserving mixed block order', () => {
-    expect(renderToStaticMarkup(<DocumentBlockRenderer blocks={blocks} />)).toBe('<h2>Start</h2><ul><li>One</li><li>Two</li></ul><ol><li>Three</li></ol><blockquote>Pause</blockquote><ol><li>Four</li></ol><hr aria-label="Page break"/><ul><li>Five</li></ul><p>End</p>')
+    expect(renderToStaticMarkup(<DocumentBlockRenderer blocks={blocks} />)).toBe('<h2 data-reader-block-id="heading">Start</h2><ul><li data-reader-block-id="unordered-one">One</li><li data-reader-block-id="unordered-two">Two</li></ul><ol><li data-reader-block-id="ordered-one">Three</li></ol><blockquote data-reader-block-id="quote">Pause</blockquote><ol><li data-reader-block-id="ordered-two">Four</li></ol><hr aria-label="Page break" data-reader-block-id="break"/><ul><li data-reader-block-id="unordered-three">Five</li></ul><p data-reader-block-id="paragraph">End</p>')
   })
 })

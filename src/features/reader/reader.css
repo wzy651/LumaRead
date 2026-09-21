@@ -97,6 +97,7 @@
 .reader-chrome__button:disabled { color: var(--color-disabled-text); cursor: not-allowed; }
 .reader-chrome__settings span { font-family: var(--font-reading); font-size: .9rem; }
 .reader-chrome__actions { display: flex; align-items: center; gap: 2px; }
+.reader-chrome__bookmark.is-active { color: var(--color-action); background: var(--color-accent-subtle); }
 
 .reader-book-identity {
   min-width: 0;
@@ -380,6 +381,17 @@
 .reader-panel__content {
   padding: var(--space-5, 20px);
 }
+
+.reader-bookmarks__list { display: grid; gap: var(--space-2); min-width: min(320px, 100%); }
+.reader-bookmarks__empty { margin: 0; color: var(--color-text-muted); line-height: 1.55; }
+.reader-bookmark { display: grid; grid-template-columns: minmax(0, 1fr) 44px; align-items: stretch; border: 1px solid var(--color-border); border-radius: var(--radius-sm); }
+.reader-bookmark__open { display: grid; min-height: 68px; gap: 3px; border: 0; background: transparent; color: var(--color-text); cursor: pointer; padding: 10px 12px; text-align: left; }
+.reader-bookmark__open:hover, .reader-bookmark__open:focus-visible { background: var(--color-accent-subtle); }
+.reader-bookmark__open strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .82rem; font-weight: 650; }
+.reader-bookmark__open span { overflow: hidden; color: var(--color-text-muted); font-family: var(--font-reading); font-size: .78rem; line-height: 1.35; text-overflow: ellipsis; white-space: nowrap; }
+.reader-bookmark__open small { color: var(--color-text-muted); font-size: .68rem; }
+.reader-bookmark__delete { width: 44px; min-height: 44px; align-self: center; border: 0; background: transparent; color: var(--color-text-muted); cursor: pointer; }
+.reader-bookmark__delete:hover, .reader-bookmark__delete:focus-visible { color: var(--color-action); }
 
 .dictionary-content__heading {
   display: flex;

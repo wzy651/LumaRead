@@ -3,7 +3,7 @@ import { BookOpen, Sparkles } from 'lucide-react'
 import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { MEDIA_QUERIES, useMediaQuery } from '../../app/responsive'
 import { books, currentBook, lookupEvents, vocabularyItems } from '../../mocks'
-import type { VocabularyItem } from '../../domain'
+import type { Bookmark, DocumentSection, VocabularyItem } from '../../domain'
 import { AdaptivePanel } from './components/AdaptivePanel'
 import { DictionaryContent } from './components/DictionaryContent'
 import { InteractiveSentence } from './components/InteractiveSentence'
@@ -19,7 +19,9 @@ import { shouldToggleReaderChrome } from './readerKeyboard'
 import { useReaderExit } from './useReaderExit'
 import { ImportedDocumentReader } from './documents/ImportedDocumentReader'
 import { readerLanguage, resolveReaderLayout } from './readerLayout'
-import { getReadingActivityRepository } from '../../storage'
+import { createLocatorFromCurrentPosition, navigateToLocator } from './reader-navigation'
+import { ReaderBookmarksPanel } from './components/ReaderBookmarksPanel'
+import { getBookmarkRepository, getReadingActivityRepository } from '../../storage'
 import './reader.css'
 
 type ActivePanel =
@@ -40,12 +42,16 @@ export function ReaderPage() {
   const isMobile = useMediaQuery(MEDIA_QUERIES.mobile)
   const [activePanel, setActivePanel] = useState<ActivePanel | null>(null)
   const { settings, setSettings } = useReaderSettings()
-  const { chromeRef, hide, reveal, visible } = useReaderChromeVisibility({ isMobile, overlayOpen: activePanel !== null })
+  const [bookmarksAnchor, setBookmarksAnchor] = useState<HTMLButtonElement>()
+  const [bookmarks, setBookmarks] = useState<Bookmark[]>([])
+  const { chromeRef, hide, reveal, visible } = useReaderChromeVisibility({ isMobile, overlayOpen: activePanel !== null || Boolean(bookmarksAnchor) })
   const [lookupCounts, setLookupCounts] = useState<Record<string, number>>(() => Object.fromEntries(vocabularyItems.map((item) => [item.id, lookupEvents.filter((event) => event.vocabularyId === item.id).length])))
   const [acknowledgedIds, setAcknowledgedIds] = useState<Set<string>>(() => new Set())
   const [learningIds, setLearningIds] = useState<Set<string>>(() => new Set(vocabularyItems.filter((item) => item.addedToLearning).map((item) => item.id)))
   const [moreVisible, setMoreVisible] = useState(false)
   const vocabularyById = useMemo(() => new Map(vocabularyItems.map((item) => [item.id, item])), [])
+  const mockSections = useMemo<DocumentSection[]>(() => [{ id: readerChapter.chapterLabel, order: 0, blocks: readerChapter.paragraphs.map((paragraph, order) => ({ id: `mock-paragraph-${order}`, type: 'paragraph', text: paragraph.map((segment) => segment.text).join(''), order })) }], [])
+  const resourceKey = `builtin:${readerChapter.bookId}`
   const activityTimer = useRef<number | undefined>(undefined)
   const saveLocation = useCallback(async () => {
     if (bookId !== readerChapter.bookId) return
@@ -55,15 +61,21 @@ export function ReaderPage() {
   }, [bookId])
   const flushLocation = useCallback(() => { window.clearTimeout(activityTimer.current); return saveLocation() }, [saveLocation])
   useEffect(() => { if (bookId !== readerChapter.bookId) return; void getReadingActivityRepository().recordOpen('builtin', readerChapter.bookId).catch(() => undefined); const onScroll = () => { window.clearTimeout(activityTimer.current); activityTimer.current = window.setTimeout(() => { void saveLocation() }, 650) }; window.addEventListener('scroll', onScroll, { passive: true }); return () => { window.removeEventListener('scroll', onScroll); window.clearTimeout(activityTimer.current); void saveLocation() } }, [bookId, saveLocation])
-  useReaderExit({ closeOverlay: () => setActivePanel(null), flushLocation, navigateHome: () => navigate('/', { replace: true }), overlayOpen: activePanel !== null })
+  useEffect(() => { if (bookId !== readerChapter.bookId) return; void getBookmarkRepository().listForResource(resourceKey).then(setBookmarks).catch(() => setBookmarks([])) }, [bookId, resourceKey])
+  useReaderExit({ closeOverlay: () => { if (bookmarksAnchor) setBookmarksAnchor(undefined); else setActivePanel(null) }, flushLocation, navigateHome: () => navigate('/', { replace: true }), overlayOpen: activePanel !== null || Boolean(bookmarksAnchor) })
 
   if (bookId && !books.some((book) => book.id === bookId)) return <ImportedDocumentReader documentId={bookId} />
   if (!bookId || bookId !== readerChapter.bookId) return <Navigate replace to={'/reader/' + currentBook.id} />
 
   function exitReader() { if (window.history.length > 1) navigate(-1); else navigate('/') }
-  function openDictionary(item: VocabularyItem, anchor: HTMLElement) { setLookupCounts((current) => ({ ...current, [item.id]: (current[item.id] ?? 0) + 1 })); setMoreVisible(false); setActivePanel({ anchor, kind: 'dictionary', vocabularyId: item.id }) }
+  function openDictionary(item: VocabularyItem, anchor: HTMLElement) { setLookupCounts((current) => ({ ...current, [item.id]: (current[item.id] ?? 0) + 1 })); setMoreVisible(false); setBookmarksAnchor(undefined); setActivePanel({ anchor, kind: 'dictionary', vocabularyId: item.id }) }
   function openSentence(aidId: string, anchor: HTMLElement) { setActivePanel({ aidId, anchor, kind: 'sentence' }) }
-  function openChromePanel(kind: 'settings' | 'more', anchor: HTMLButtonElement) { setActivePanel({ anchor, kind }) }
+  function openChromePanel(kind: 'settings' | 'more', anchor: HTMLButtonElement) { setBookmarksAnchor(undefined); setActivePanel({ anchor, kind }) }
+  function currentLocator() { return createLocatorFromCurrentPosition({ resourceKey, sections: mockSections, sectionIndex: 0 }) }
+  function currentBookmark() { const locator = currentLocator(); return bookmarks.find((bookmark) => bookmark.anchorKey === JSON.stringify(locator)) }
+  async function toggleBookmark() { const locator = currentLocator(); const blockId = locator.kind === 'reflowable' ? locator.blockId : undefined; try { await getBookmarkRepository().toggleAtLocator({ resourceKey, locator, label: readerChapter.chapterLabel, excerpt: mockSections[0].blocks.find((block) => block.id === blockId)?.text.slice(0, 140) }); setBookmarks(await getBookmarkRepository().listForResource(resourceKey)) } catch { /* Local storage is optional; Reader remains usable. */ } }
+  function openBookmarks(anchor: HTMLButtonElement) { setActivePanel(null); setBookmarksAnchor(anchor) }
+  function openBookmark(bookmark: Bookmark) { setBookmarksAnchor(undefined); navigateToLocator(bookmark.locator, { resourceKey, sections: mockSections, sectionIndex: 0 }) }
   function handleReadingAreaClick(event: MouseEvent<HTMLElement>) {
     if (!shouldToggleReaderChrome({ currentTarget: event.currentTarget, defaultPrevented: event.defaultPrevented, selectedText: window.getSelection()?.toString() ?? '', target: event.target })) return
     if (isMobile) {
@@ -82,12 +94,12 @@ export function ReaderPage() {
   const layout = resolveReaderLayout(settings, isMobile)
 
   return <div className="reader-shell">
-    <ReaderChrome bookTitle={currentBook.title} chapterLabel={readerChapter.chapterLabel} chromeRef={chromeRef} isMobile={isMobile} onBack={exitReader} onMore={(anchor) => openChromePanel('more', anchor)} onSettings={(anchor) => openChromePanel('settings', anchor)} visible={visible} />
+    <ReaderChrome bookTitle={currentBook.title} chapterLabel={readerChapter.chapterLabel} chromeRef={chromeRef} isMobile={isMobile} onBack={exitReader} onMore={(anchor) => openChromePanel('more', anchor)} onSettings={(anchor) => openChromePanel('settings', anchor)} onToggleBookmark={() => { void toggleBookmark() }} onOpenBookmarks={openBookmarks} bookmarkActive={Boolean(currentBookmark())} visible={visible} />
     <ReaderChromeRevealZone onReveal={reveal} visible={visible} />
     <main className="reader-main" onClick={handleReadingAreaClick}>
       <article aria-labelledby="reader-chapter-title" className={`reader-article ${layout.className}`} lang={readerLanguage('en')} style={layout.styleVariables as CSSProperties}>
         <header className="reader-chapter-heading"><div className="reader-chapter-heading__mark"><BookOpen aria-hidden="true" size={16} />{readerChapter.chapterLabel}</div><h1 id="reader-chapter-title" tabIndex={-1}>{readerChapter.chapterTitle}</h1><p>{readerChapter.readingHint}</p></header>
-        <div className="reader-prose">{readerChapter.paragraphs.map((paragraph, paragraphIndex) => <p key={paragraphIndex}>{paragraph.map((segment, segmentIndex) => renderSegment(segment, paragraphIndex, segmentIndex))}</p>)}</div>
+        <div className="reader-prose">{readerChapter.paragraphs.map((paragraph, paragraphIndex) => <p data-reader-block-id={`mock-paragraph-${paragraphIndex}`} key={paragraphIndex}>{paragraph.map((segment, segmentIndex) => renderSegment(segment, paragraphIndex, segmentIndex))}</p>)}</div>
         <footer className="reader-chapter-end"><Sparkles aria-hidden="true" size={15} /><span>A quiet place to stop, whenever you are ready.</span></footer>
       </article>
     </main>
@@ -95,5 +107,6 @@ export function ReaderPage() {
     {activePanel?.kind === 'more' && <AdaptivePanel anchorElement={activePanel.anchor} isMobile={isMobile} label="More reader options" onClose={() => setActivePanel(null)} variant="more"><ReaderMoreMenu /></AdaptivePanel>}
     {activePanel && activeVocabulary && <AdaptivePanel anchorElement={activePanel.anchor} isMobile={isMobile} label="Quick meaning" onClose={() => setActivePanel(null)} variant="dictionary"><DictionaryContent acknowledged={acknowledgedIds.has(activeVocabulary.id)} addedToLearning={learningIds.has(activeVocabulary.id)} item={activeVocabulary} lookupCount={lookupCounts[activeVocabulary.id] ?? 1} moreVisible={moreVisible} onAcknowledge={() => setAcknowledgedIds((current) => addToSet(current, activeVocabulary.id))} onAddToLearning={() => setLearningIds((current) => addToSet(current, activeVocabulary.id))} onToggleMore={() => setMoreVisible((current) => !current)} /></AdaptivePanel>}
     {activePanel && activeSentenceAid && <AdaptivePanel anchorElement={activePanel.anchor} isMobile={isMobile} label="Sentence help" onClose={() => setActivePanel(null)} variant="sentence"><SentenceAidContent aid={activeSentenceAid} /></AdaptivePanel>}
+    {bookmarksAnchor && <AdaptivePanel anchorElement={bookmarksAnchor} isMobile={isMobile} label="Bookmarks" onClose={() => setBookmarksAnchor(undefined)} variant="bookmarks"><ReaderBookmarksPanel bookmarks={bookmarks} onDelete={(bookmark) => { void getBookmarkRepository().remove(bookmark.id).then(async () => setBookmarks(await getBookmarkRepository().listForResource(resourceKey))).catch(() => undefined) }} onOpen={openBookmark} /></AdaptivePanel>}
   </div>
 }

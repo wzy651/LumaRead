@@ -18,3 +18,4 @@ export class DocumentError extends Error { constructor(public readonly code: Doc
 export interface DocumentAdapter { format: DocumentFormat; supports(source: DocumentSource): Promise<boolean>; parse(source: DocumentSource): Promise<ParsedDocument> }
 export interface StoredDocument { document: ImportedDocument; source: Blob; sections: DocumentSection[]; capabilities: DocumentCapabilities }
 export interface DocumentRepository { saveDocument(record: StoredDocument): Promise<void>; getDocument(id: string): Promise<StoredDocument | undefined>; listDocuments(): Promise<ImportedDocument[]>; hasDocument(fingerprint: string): Promise<boolean>; saveLocation(location: ReaderLocation): Promise<void>; getLocation(documentId: string): Promise<ReaderLocation | undefined>; listLocations(): Promise<ReaderLocation[]> }
+export type { PdfReaderLocator, ReaderLocator, ReflowableReaderLocator } from '../reader-locator'

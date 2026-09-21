@@ -3,7 +3,7 @@ import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
 import { DocumentError, type DocumentAdapter, type DocumentBlock, type DocumentCapabilities, type DocumentMetadata, type DocumentSection, type DocumentSource, type ParsedDocument } from '../domain/documents'
 
 // Vite copies this worker into the application bundle; PDF.js never receives a remote URL.
-GlobalWorkerOptions.workerSrc = pdfWorkerUrl
+if (typeof window !== 'undefined') GlobalWorkerOptions.workerSrc = pdfWorkerUrl
 
 const capabilities: DocumentCapabilities = {
   reflowable: true,

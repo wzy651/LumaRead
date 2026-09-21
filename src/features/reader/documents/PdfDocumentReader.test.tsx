@@ -30,7 +30,7 @@ describe('PdfDocumentReader', () => {
 
   beforeEach(() => { readerMock.pdfDocument = {}; readerMock.pageRenders = 0; container = document.createElement('div'); document.body.append(container); onBack = vi.fn<() => void>() })
   afterEach(() => { if (root) act(() => root?.unmount()); root = undefined; container.remove(); vi.clearAllMocks() })
-  function mount(isMobile = false) { root = createRoot(container); act(() => root?.render(<PdfDocumentReader capabilities={capabilities} document={imported} isMobile={isMobile} onBack={onBack} sections={sections} source={new Blob(['pdf'])} />)) }
+  function mount(isMobile = false, documentCapabilities = capabilities) { root = createRoot(container); act(() => root?.render(<PdfDocumentReader capabilities={documentCapabilities} document={imported} isMobile={isMobile} onBack={onBack} sections={sections} source={new Blob(['pdf'])} />)) }
   function more() { act(() => { container.querySelector<HTMLButtonElement>('[aria-label="More reader options"]')?.click() }) }
 
   it('shows Retry and Return to Library after a page error, then remounts the page on Retry', () => {
@@ -49,8 +49,26 @@ describe('PdfDocumentReader', () => {
     mount(); act(() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'PageDown' }))); expect(container.textContent).toContain('PDF page 2'); act(() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft' }))); expect(container.textContent).toContain('PDF page 1'); act(() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft' }))); expect(container.textContent).toContain('PDF page 1')
   })
 
+  it('applies ten rapid Next requests with the functional updater and keeps navigation bounded', () => {
+    mount(); const next = container.querySelector<HTMLButtonElement>('[aria-label="Next PDF page"]') as HTMLButtonElement
+    act(() => { for (let index = 0; index < 10; index += 1) next.click() })
+    expect(container.textContent).toContain('PDF page 3'); expect(next.disabled).toBe(true); expect((container.querySelector('[aria-label="Previous PDF page"]') as HTMLButtonElement).disabled).toBe(false)
+  })
+
+  it('does not navigate when keyboard input starts in selectable PDF text', () => {
+    mount(); const layer = container.querySelector('.textLayer') as HTMLElement
+    act(() => layer.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'ArrowRight' })))
+    expect(container.textContent).toContain('PDF page 1')
+  })
+
   it('switches between Original Layout and Reading View Beta', () => {
     mount(); more(); expect(container.textContent).toContain('Reading view — Beta'); act(() => { Array.from(container.querySelectorAll('button')).find((button) => button.textContent?.includes('Reading view'))?.click() }); expect(container.textContent).toContain('Reading view — Beta'); more(); act(() => { Array.from(container.querySelectorAll('button')).find((button) => button.textContent?.includes('Original layout'))?.click() }); expect(container.textContent).toContain('PDF page 1')
+  })
+
+  it('keeps scanned PDFs in Original Layout and disables OCR Reading View with the user-facing explanation', () => {
+    mount(false, { ...capabilities, reflowable: false, supportsTextSelection: false }); more()
+    const readingView = Array.from(container.querySelectorAll('button')).find((button) => button.textContent?.includes('Reading view')) as HTMLButtonElement
+    expect(readingView.disabled).toBe(true); expect(container.textContent).toContain('No selectable text was found. OCR reading view is not available yet.')
   })
 
   it('keeps PDF Chrome free of TOC and toggles only for stage background clicks', () => {

@@ -100,7 +100,7 @@ export function AdaptivePanel({ anchorElement, children, isMobile, label, onClos
 
   useEffect(() => {
     function handleDocumentKeyDown(event: globalThis.KeyboardEvent) {
-      if (event.key !== 'Escape') return
+      if (event.key !== 'Escape' || event.defaultPrevented || event.isComposing) return
       event.preventDefault()
       onClose()
     }

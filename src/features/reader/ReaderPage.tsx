@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent } from 'react'
 import { BookOpen, Sparkles } from 'lucide-react'
 import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { MEDIA_QUERIES, useMediaQuery } from '../../app/responsive'
@@ -8,12 +8,15 @@ import { AdaptivePanel } from './components/AdaptivePanel'
 import { DictionaryContent } from './components/DictionaryContent'
 import { InteractiveSentence } from './components/InteractiveSentence'
 import { ReaderChrome } from './components/ReaderChrome'
+import { ReaderChromeRevealZone } from './components/ReaderChromeRevealZone'
 import { ReaderMoreMenu } from './components/ReaderMoreMenu'
 import { ReadingSettingsPanel } from './components/ReadingSettingsPanel'
 import { SentenceAidContent } from './components/SentenceAidContent'
 import { readerChapter, sentenceAids, type ReaderSegment } from './fixtures/reader-content'
 import { useReaderChromeVisibility } from './useReaderChromeVisibility'
 import { useReaderSettings } from './useReaderSettings'
+import { shouldToggleReaderChrome } from './readerKeyboard'
+import { useReaderExit } from './useReaderExit'
 import { ImportedDocumentReader } from './documents/ImportedDocumentReader'
 import { readerLanguage, resolveReaderLayout } from './readerLayout'
 import { getReadingActivityRepository } from '../../storage'
@@ -44,7 +47,15 @@ export function ReaderPage() {
   const [moreVisible, setMoreVisible] = useState(false)
   const vocabularyById = useMemo(() => new Map(vocabularyItems.map((item) => [item.id, item])), [])
   const activityTimer = useRef<number | undefined>(undefined)
-  useEffect(() => { if (bookId !== readerChapter.bookId) return; void getReadingActivityRepository().recordOpen('builtin', readerChapter.bookId).catch(() => undefined); const save = () => { const maximum = Math.max(1, document.documentElement.scrollHeight - window.innerHeight); const now = new Date().toISOString(); void getReadingActivityRepository().recordProgress({ contentKind: 'builtin', documentId: readerChapter.bookId, sectionId: readerChapter.chapterLabel, sectionIndex: 0, locationLabel: readerChapter.chapterLabel, progressPercent: Math.min(100, Math.round(window.scrollY / maximum * 100)), lastReadAt: now }).catch(() => undefined) }; const onScroll = () => { window.clearTimeout(activityTimer.current); activityTimer.current = window.setTimeout(save, 650) }; window.addEventListener('scroll', onScroll, { passive: true }); return () => { window.removeEventListener('scroll', onScroll); window.clearTimeout(activityTimer.current); save() } }, [bookId])
+  const saveLocation = useCallback(async () => {
+    if (bookId !== readerChapter.bookId) return
+    const maximum = Math.max(1, document.documentElement.scrollHeight - window.innerHeight)
+    const now = new Date().toISOString()
+    await Promise.allSettled([Promise.resolve().then(() => getReadingActivityRepository().recordProgress({ contentKind: 'builtin', documentId: readerChapter.bookId, sectionId: readerChapter.chapterLabel, sectionIndex: 0, locationLabel: readerChapter.chapterLabel, progressPercent: Math.min(100, Math.round(window.scrollY / maximum * 100)), lastReadAt: now }))])
+  }, [bookId])
+  const flushLocation = useCallback(() => { window.clearTimeout(activityTimer.current); return saveLocation() }, [saveLocation])
+  useEffect(() => { if (bookId !== readerChapter.bookId) return; void getReadingActivityRepository().recordOpen('builtin', readerChapter.bookId).catch(() => undefined); const onScroll = () => { window.clearTimeout(activityTimer.current); activityTimer.current = window.setTimeout(() => { void saveLocation() }, 650) }; window.addEventListener('scroll', onScroll, { passive: true }); return () => { window.removeEventListener('scroll', onScroll); window.clearTimeout(activityTimer.current); void saveLocation() } }, [bookId, saveLocation])
+  useReaderExit({ closeOverlay: () => setActivePanel(null), flushLocation, navigateHome: () => navigate('/', { replace: true }), overlayOpen: activePanel !== null })
 
   if (bookId && !books.some((book) => book.id === bookId)) return <ImportedDocumentReader documentId={bookId} />
   if (!bookId || bookId !== readerChapter.bookId) return <Navigate replace to={'/reader/' + currentBook.id} />
@@ -54,14 +65,11 @@ export function ReaderPage() {
   function openSentence(aidId: string, anchor: HTMLElement) { setActivePanel({ aidId, anchor, kind: 'sentence' }) }
   function openChromePanel(kind: 'settings' | 'more', anchor: HTMLButtonElement) { setActivePanel({ anchor, kind }) }
   function handleReadingAreaClick(event: MouseEvent<HTMLElement>) {
-    if (event.defaultPrevented || window.getSelection()?.toString().trim()) return
-    const target = event.target as HTMLElement
-    if (target.closest('.reader-word, .reader-sentence-target, .reader-panel')) return
-    if (isMobile && (target === event.currentTarget || target.classList.contains('reader-article'))) {
+    if (!shouldToggleReaderChrome({ currentTarget: event.currentTarget, defaultPrevented: event.defaultPrevented, selectedText: window.getSelection()?.toString() ?? '', target: event.target })) return
+    if (isMobile) {
       if (visible) hide()
       else reveal()
-    }
-    else if (target === event.currentTarget) reveal()
+    } else reveal()
   }
   function renderSegment(segment: ReaderSegment, paragraphIndex: number, segmentIndex: number) {
     const key = `${paragraphIndex}-${segmentIndex}`
@@ -75,9 +83,10 @@ export function ReaderPage() {
 
   return <div className="reader-shell">
     <ReaderChrome bookTitle={currentBook.title} chapterLabel={readerChapter.chapterLabel} chromeRef={chromeRef} isMobile={isMobile} onBack={exitReader} onMore={(anchor) => openChromePanel('more', anchor)} onSettings={(anchor) => openChromePanel('settings', anchor)} visible={visible} />
+    <ReaderChromeRevealZone onReveal={reveal} visible={visible} />
     <main className="reader-main" onClick={handleReadingAreaClick}>
       <article aria-labelledby="reader-chapter-title" className={`reader-article ${layout.className}`} lang={readerLanguage('en')} style={layout.styleVariables as CSSProperties}>
-        <header className="reader-chapter-heading"><div className="reader-chapter-heading__mark"><BookOpen aria-hidden="true" size={16} />{readerChapter.chapterLabel}</div><h1 id="reader-chapter-title">{readerChapter.chapterTitle}</h1><p>{readerChapter.readingHint}</p></header>
+        <header className="reader-chapter-heading"><div className="reader-chapter-heading__mark"><BookOpen aria-hidden="true" size={16} />{readerChapter.chapterLabel}</div><h1 id="reader-chapter-title" tabIndex={-1}>{readerChapter.chapterTitle}</h1><p>{readerChapter.readingHint}</p></header>
         <div className="reader-prose">{readerChapter.paragraphs.map((paragraph, paragraphIndex) => <p key={paragraphIndex}>{paragraph.map((segment, segmentIndex) => renderSegment(segment, paragraphIndex, segmentIndex))}</p>)}</div>
         <footer className="reader-chapter-end"><Sparkles aria-hidden="true" size={15} /><span>A quiet place to stop, whenever you are ready.</span></footer>
       </article>

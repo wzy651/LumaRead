@@ -3,7 +3,7 @@ import { BookOpen, Sparkles } from 'lucide-react'
 import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { MEDIA_QUERIES, useMediaQuery } from '../../app/responsive'
 import { books, currentBook, lookupEvents, vocabularyItems } from '../../mocks'
-import type { Bookmark, DocumentSection, VocabularyItem } from '../../domain'
+import { normalizeReaderLocator, readerLocatorAnchorKey, type Bookmark, type DocumentSection, type VocabularyItem } from '../../domain'
 import { AdaptivePanel } from './components/AdaptivePanel'
 import { DictionaryContent } from './components/DictionaryContent'
 import { InteractiveSentence } from './components/InteractiveSentence'
@@ -72,7 +72,7 @@ export function ReaderPage() {
   function openSentence(aidId: string, anchor: HTMLElement) { setActivePanel({ aidId, anchor, kind: 'sentence' }) }
   function openChromePanel(kind: 'settings' | 'more', anchor: HTMLButtonElement) { setBookmarksAnchor(undefined); setActivePanel({ anchor, kind }) }
   function currentLocator() { return createLocatorFromCurrentPosition({ resourceKey, sections: mockSections, sectionIndex: 0 }) }
-  function currentBookmark() { const locator = currentLocator(); return bookmarks.find((bookmark) => bookmark.anchorKey === JSON.stringify(locator)) }
+  function currentBookmark() { const locator = currentLocator(); if (!locator) return undefined; const anchorKey = readerLocatorAnchorKey(locator); return bookmarks.find((bookmark) => { const normalized = normalizeReaderLocator(bookmark.locator); return normalized ? readerLocatorAnchorKey(normalized) === anchorKey : false }) }
   async function toggleBookmark() { const locator = currentLocator(); const blockId = locator.kind === 'reflowable' ? locator.blockId : undefined; try { await getBookmarkRepository().toggleAtLocator({ resourceKey, locator, label: readerChapter.chapterLabel, excerpt: mockSections[0].blocks.find((block) => block.id === blockId)?.text.slice(0, 140) }); setBookmarks(await getBookmarkRepository().listForResource(resourceKey)) } catch { /* Local storage is optional; Reader remains usable. */ } }
   function openBookmarks(anchor: HTMLButtonElement) { setActivePanel(null); setBookmarksAnchor(anchor) }
   function openBookmark(bookmark: Bookmark) { setBookmarksAnchor(undefined); navigateToLocator(bookmark.locator, { resourceKey, sections: mockSections, sectionIndex: 0 }) }

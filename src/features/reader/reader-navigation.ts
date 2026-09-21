@@ -28,7 +28,10 @@ export function createLocatorFromCurrentPosition(context: LocatorNavigationConte
 export function navigateToLocator(locator: ReaderLocator, context: LocatorNavigationContext & { onSectionChange?: (index: number) => void }): boolean {
   const resolved = resolveReaderLocator(locator, { resourceKey: context.resourceKey, sections: context.sections })
   const index = resolved.sectionIndex ?? 0
-  if (index !== context.sectionIndex) context.onSectionChange?.(index)
+  if (index !== context.sectionIndex) {
+    context.onSectionChange?.(index)
+    return false
+  }
   const targetId = resolved.blockId
   if (targetId) {
     const target = blockElements(context.root).find((candidate) => candidate.dataset.readerBlockId === targetId)

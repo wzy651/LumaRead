@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type MouseEvent } from 'react'
 import { Link } from 'react-router-dom'
-import type { Bookmark, DocumentCapabilities, DocumentSection, ImportedDocument, ReaderLocation } from '../../../domain'
+import { normalizeReaderLocator, readerLocatorAnchorKey, type Bookmark, type DocumentCapabilities, type DocumentSection, type ImportedDocument, type ReaderLocation } from '../../../domain'
 import { getBookmarkRepository } from '../../../storage'
 import { AdaptivePanel } from '../components/AdaptivePanel'
 import { ReaderChrome } from '../components/ReaderChrome'
@@ -34,7 +34,7 @@ export function PdfDocumentReader({ document: imported, source, sections, capabi
   const reportPageError = useCallback(() => setPageError(true), [])
   useReaderExit({ closeOverlay: () => { if (bookmarksAnchor) setBookmarksAnchor(undefined); else if (moreAnchor) setMoreAnchor(undefined); else setViewAnchor(undefined) }, flushLocation, navigateHome: exitHome, overlayOpen: Boolean(viewAnchor || moreAnchor || bookmarksAnchor) })
   function currentLocator() { return { version: 1 as const, kind: 'pdf' as const, resourceKey, pageNumber: state.page } }
-  function currentBookmark() { const locator = currentLocator(); return bookmarks.find((bookmark) => bookmark.anchorKey === JSON.stringify(locator)) }
+  function currentBookmark() { const locator = currentLocator(); const anchorKey = readerLocatorAnchorKey(locator); return bookmarks.find((bookmark) => { const normalized = normalizeReaderLocator(bookmark.locator); return normalized ? readerLocatorAnchorKey(normalized) === anchorKey : false }) }
   async function toggleBookmark() { const locator = currentLocator(); try { await getBookmarkRepository().toggleAtLocator({ resourceKey, locator, label: `Page ${state.page}`, excerpt: sections[state.page - 1]?.blocks[0]?.text.slice(0, 140) }); setBookmarks(await getBookmarkRepository().listForResource(resourceKey)) } catch { /* Local storage is optional; Reader remains usable. */ } }
   function openBookmarks(anchor: HTMLButtonElement) { setViewAnchor(undefined); setMoreAnchor(undefined); setBookmarksAnchor(anchor) }
   function openBookmark(bookmark: Bookmark) { setBookmarksAnchor(undefined); if (bookmark.locator.kind !== 'pdf') return; const pageNumber = bookmark.locator.pageNumber; setState((current) => ({ ...current, page: clampPdfPage(pageNumber, sections.length) })); window.requestAnimationFrame(() => stageRef.current?.scrollTo({ top: 0, behavior: 'auto' })) }

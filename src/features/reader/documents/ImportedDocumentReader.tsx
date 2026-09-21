@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type MouseEvent } from 'react'
 import { BookOpen } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
-import type { Bookmark, DocumentSection, ImportedDocument, ReaderLocation, ReaderLocator } from '../../../domain'
+import { normalizeReaderLocator, readerLocatorAnchorKey, type Bookmark, type DocumentSection, type ImportedDocument, type ReaderLocation, type ReaderLocator } from '../../../domain'
 import { getBookmarkRepository, getDocumentRepository, getReadingActivityRepository } from '../../../storage'
 import { AdaptivePanel } from '../components/AdaptivePanel'
 import { ReaderChrome } from '../components/ReaderChrome'
@@ -47,7 +47,7 @@ export function ImportedDocumentReader({ documentId }: { documentId: string }) {
   useReaderKeyboardNavigation({ enabled: Boolean(loaded && loaded.document.format !== 'pdf'), onSectionChange: changeSection, sectionCount: loaded?.sections.length ?? 0, sectionIndex })
   useReaderExit({ closeOverlay: () => { if (bookmarksOpen) setBookmarksOpen(undefined); else if (tocOpen) setTocOpen(undefined); else if (moreOpen) setMoreOpen(undefined); else setSettingsOpen(undefined) }, enabled: Boolean(loaded && !(loaded.document.format === 'pdf' && loaded.capabilities.supportsOriginalLayout)), flushLocation, navigateHome: () => navigate('/', { replace: true }), overlayOpen: Boolean(settingsOpen || moreOpen || tocOpen || bookmarksOpen) })
   function currentLocator() { return loaded ? createLocatorFromCurrentPosition({ resourceKey, sections: loaded.sections, sectionIndex }) : undefined }
-  function currentBookmark() { const locator = currentLocator(); return locator ? bookmarks.find((bookmark) => bookmark.anchorKey === JSON.stringify(locator)) : undefined }
+  function currentBookmark() { const locator = currentLocator(); if (!locator) return undefined; const anchorKey = readerLocatorAnchorKey(locator); return bookmarks.find((bookmark) => { const normalized = normalizeReaderLocator(bookmark.locator); return normalized ? readerLocatorAnchorKey(normalized) === anchorKey : false }) }
   async function toggleBookmark() { const locator = currentLocator(); if (!locator) return; const blockId = locator.kind === 'reflowable' ? locator.blockId : undefined; try { await getBookmarkRepository().toggleAtLocator({ resourceKey, locator, label: loaded?.sections[sectionIndex]?.title ?? `Section ${sectionIndex + 1}`, excerpt: loaded?.sections[sectionIndex]?.blocks.find((block) => block.id === blockId)?.text.slice(0, 140) }); setBookmarks(await getBookmarkRepository().listForResource(resourceKey)) } catch { /* Local storage is optional; Reader remains usable. */ } }
   function openBookmarks(anchor: HTMLButtonElement) { setSettingsOpen(undefined); setMoreOpen(undefined); setTocOpen(undefined); setBookmarksOpen(anchor) }
   function openBookmark(bookmark: Bookmark) { setBookmarksOpen(undefined); if (!loaded) return; navigateToLocator(bookmark.locator, { resourceKey, sections: loaded.sections, sectionIndex, onSectionChange: (index) => { pendingLocator.current = bookmark.locator; setSectionIndex(index) } }) }

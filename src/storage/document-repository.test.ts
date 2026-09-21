@@ -9,6 +9,8 @@ import { openDatabase, requestResult } from './database'
 
 const pdfDocument: ImportedDocument = { id: 'pdf-one', format: 'pdf', fileName: 'one.pdf', fileSize: 3, importedAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z', metadata: { title: 'PDF One' }, fingerprint: 'pdf-fingerprint', status: 'ready' }
 const txtDocument: ImportedDocument = { id: 'txt-one', format: 'txt', fileName: 'one.txt', fileSize: 3, importedAt: '2026-01-02T00:00:00.000Z', updatedAt: '2026-01-02T00:00:00.000Z', metadata: { title: 'TXT One' }, fingerprint: 'txt-fingerprint', status: 'ready' }
+const epubDocument: ImportedDocument = { id: 'epub-one', format: 'epub', fileName: 'one.epub', fileSize: 4, importedAt: '2026-01-03T00:00:00.000Z', updatedAt: '2026-01-03T00:00:00.000Z', metadata: { title: 'EPUB One' }, fingerprint: 'epub-fingerprint', status: 'ready' }
+const docxDocument: ImportedDocument = { id: 'docx-one', format: 'docx', fileName: 'one.docx', fileSize: 5, importedAt: '2026-01-04T00:00:00.000Z', updatedAt: '2026-01-04T00:00:00.000Z', metadata: { title: 'DOCX One' }, fingerprint: 'docx-fingerprint', status: 'ready' }
 const pdfLocation = { documentId: 'pdf-one', sectionId: 'page-2', sectionIndex: 1, progressPercent: 0, updatedAt: '2026-01-03T00:00:00.000Z', pdf: { mode: 'original' as const, zoomMode: 'custom' as const, zoom: 1.25, rotation: 90, pageNumber: 2 } }
 const txtLocation = { documentId: 'txt-one', sectionId: 'section-1', sectionIndex: 0, progressPercent: 45, updatedAt: '2026-01-03T00:00:00.000Z' }
 const pdfActivity: ReadingActivity = { key: 'imported:pdf-one', contentKind: 'imported', documentId: 'pdf-one', firstOpenedAt: '2026-01-01T00:00:00.000Z', lastOpenedAt: '2026-01-03T00:00:00.000Z', lastReadAt: '2026-01-03T00:00:00.000Z', sectionId: 'page-2', sectionIndex: 1, locationLabel: 'Page 2 of 8' }
@@ -16,7 +18,9 @@ const txtActivity: ReadingActivity = { key: 'imported:txt-one', contentKind: 'im
 
 function transactionComplete(transaction: IDBTransaction): Promise<void> { return new Promise((resolve, reject) => { transaction.oncomplete = () => resolve(); transaction.onerror = () => reject(transaction.error ?? new Error('transaction error')); transaction.onabort = () => reject(transaction.error ?? new Error('transaction abort')) }) }
 function openLegacyV3(factory: IDBFactory): Promise<IDBDatabase> { return new Promise((resolve, reject) => { const request = factory.open(databaseName, 3); request.onupgradeneeded = () => { const db = request.result; const documents = db.createObjectStore('documents', { keyPath: 'document.id' }); documents.createIndex('fingerprint', 'document.fingerprint', { unique: true }); db.createObjectStore('locations', { keyPath: 'documentId' }); const activity = db.createObjectStore('readingActivity', { keyPath: 'key' }); activity.createIndex('lastOpenedAt', 'lastOpenedAt'); activity.createIndex('lastReadAt', 'lastReadAt') }; request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); request.onblocked = () => reject(new Error('legacy open blocked')) }) }
+function openLegacyV4(factory: IDBFactory): Promise<IDBDatabase> { return new Promise((resolve, reject) => { const request = factory.open(databaseName, 4); request.onupgradeneeded = () => { const db = request.result; const documents = db.createObjectStore('documents', { keyPath: 'document.id' }); documents.createIndex('fingerprint', 'document.fingerprint', { unique: true }); db.createObjectStore('locations', { keyPath: 'documentId' }); const activity = db.createObjectStore('readingActivity', { keyPath: 'key' }); activity.createIndex('lastOpenedAt', 'lastOpenedAt'); activity.createIndex('lastReadAt', 'lastReadAt') }; request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); request.onblocked = () => reject(new Error('legacy open blocked')) }) }
 function legacyRecord(document: ImportedDocument, sectionId: string, text: string, capabilities?: Partial<StoredDocument['capabilities']>) { return { document, source: new Blob([text]), sections: [{ id: sectionId, order: 0, content: [text] }], capabilities } }
+function v4Record(document: ImportedDocument, sectionId: string, text: string, capabilities: StoredDocument['capabilities']): StoredDocument { return { document, source: new Blob([text]), sections: [{ id: sectionId, title: sectionId, order: 0, blocks: [{ id: `${sectionId}-block`, type: 'paragraph', text, order: 0 }] }], capabilities } }
 
 describe('document repositories and IndexedDB migration', () => {
   let factory: IDBFactory
@@ -42,6 +46,48 @@ describe('document repositories and IndexedDB migration', () => {
     const upgraded = await openDatabase(); database = upgraded; try { expect(upgraded.version).toBe(5); expect(upgraded.objectStoreNames.contains('documents')).toBe(true); expect(upgraded.objectStoreNames.contains('locations')).toBe(true); expect(upgraded.objectStoreNames.contains('readingActivity')).toBe(true); expect(upgraded.objectStoreNames.contains('bookmarks')).toBe(true); const bookmarkStore = upgraded.transaction('bookmarks').objectStore('bookmarks'); expect(bookmarkStore.indexNames.contains('resourceKey')).toBe(true); expect(bookmarkStore.indexNames.contains('createdAt')).toBe(true); expect(bookmarkStore.indexNames.contains('updatedAt')).toBe(true); expect(bookmarkStore.indexNames.contains('anchorKey')).toBe(true); const activityTransaction = upgraded.transaction('readingActivity'); const activityStore = activityTransaction.objectStore('readingActivity'); const openedAt = requestResult(activityStore.index('lastOpenedAt').get('2026-01-03T00:00:00.000Z')); const readAt = requestResult(activityStore.index('lastReadAt').get('2026-01-03T00:00:00.000Z')); await expect(openedAt).resolves.toBeDefined(); await expect(readAt).resolves.toBeDefined() } finally { upgraded.close(); database = undefined }
 
     const reopened = await openDatabase(); database = reopened; try { const reopenedDocuments = new IndexedDbDocumentRepository(); expect(await reopenedDocuments.getDocument('pdf-one')).toMatchObject({ capabilities: { supportsOriginalLayout: true }, sections: [{ blocks: [{ text: 'pdf paragraph' }] }] }); expect(await reopenedDocuments.getLocation('pdf-one')).toEqual(pdfLocation); expect(await new IndexedDbReadingActivityRepository().getActivity('imported', 'txt-one')).toEqual(txtActivity) } finally { reopened.close(); database = undefined }
+  })
+
+  it('migrates a real v4 database with all current data into v5 without repeating the migration', async () => {
+    factory = new IDBFactory(); Object.assign(globalThis, { indexedDB: factory, window: globalThis }); database = await openLegacyV4(factory)
+    const v4Capabilities = (reflowable: boolean, supportsOriginalLayout: boolean): StoredDocument['capabilities'] => ({ reflowable, supportsOriginalLayout, supportsTextSelection: true, supportsSearch: false, supportsTableOfContents: reflowable, supportsPagination: !reflowable, supportsReadAloud: false })
+    const records = [
+      v4Record(pdfDocument, 'page-2', 'pdf paragraph', v4Capabilities(false, true)),
+      v4Record(txtDocument, 'txt-section', 'txt paragraph', v4Capabilities(true, false)),
+      v4Record(epubDocument, 'epub-chapter', 'epub paragraph', v4Capabilities(true, false)),
+      v4Record(docxDocument, 'docx-section', 'docx paragraph', v4Capabilities(true, false)),
+    ]
+    const v4Location = { documentId: 'epub-one', sectionId: 'epub-chapter', sectionIndex: 0, progressPercent: 37, updatedAt: '2026-01-05T00:00:00.000Z' }
+    const v4Activity: ReadingActivity = { key: 'imported:epub-one', contentKind: 'imported', documentId: 'epub-one', firstOpenedAt: '2026-01-03T00:00:00.000Z', lastOpenedAt: '2026-01-05T00:00:00.000Z', lastReadAt: '2026-01-05T00:00:00.000Z', sectionId: 'epub-chapter', sectionIndex: 0, locationLabel: 'epub-chapter', progressPercent: 37 }
+    try {
+      const transaction = database.transaction(['documents', 'locations', 'readingActivity'], 'readwrite')
+      for (const record of records) transaction.objectStore('documents').put(record)
+      transaction.objectStore('locations').put(v4Location)
+      transaction.objectStore('readingActivity').put(v4Activity)
+      await transactionComplete(transaction)
+    } finally { database.close(); database = undefined }
+
+    const upgraded = await openDatabase(); database = upgraded
+    try {
+      expect(upgraded.version).toBe(5)
+      expect(upgraded.objectStoreNames.contains('bookmarks')).toBe(true)
+      const bookmarkStore = upgraded.transaction('bookmarks').objectStore('bookmarks')
+      expect([...bookmarkStore.indexNames]).toEqual(expect.arrayContaining(['resourceKey', 'createdAt', 'updatedAt', 'anchorKey']))
+      expect(await requestResult(upgraded.transaction('documents').objectStore('documents').index('fingerprint').getKey('pdf-fingerprint'))).toBe('pdf-one')
+      expect(await requestResult(upgraded.transaction('readingActivity').objectStore('readingActivity').index('lastReadAt').get('2026-01-05T00:00:00.000Z'))).toEqual(v4Activity)
+      expect(await requestResult(upgraded.transaction('locations').objectStore('locations').get('epub-one'))).toEqual(v4Location)
+      const migratedPdf = await requestResult(upgraded.transaction('documents').objectStore('documents').get('pdf-one')) as StoredDocument
+      expect(migratedPdf).toMatchObject({ document: records[0].document, sections: records[0].sections, capabilities: records[0].capabilities })
+      expect(migratedPdf.source).toBeDefined()
+      expect(await requestResult(upgraded.transaction('documents').objectStore('documents').getAll())).toHaveLength(4)
+    } finally { upgraded.close(); database = undefined }
+
+    const reopened = await openDatabase(); database = reopened
+    try {
+      expect(await requestResult(reopened.transaction('documents').objectStore('documents').getAll())).toHaveLength(4)
+      expect(await requestResult(reopened.transaction('locations').objectStore('locations').get('epub-one'))).toEqual(v4Location)
+      expect(await requestResult(reopened.transaction('readingActivity').objectStore('readingActivity').get('imported:epub-one'))).toEqual(v4Activity)
+    } finally { reopened.close(); database = undefined }
   })
 
   it('converts an aborted IndexedDB transaction into a storage error', async () => {

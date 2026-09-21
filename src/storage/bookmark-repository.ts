@@ -19,7 +19,7 @@ export function bookmarkFromInput(input: BookmarkInput): Bookmark {
   return {
     id: input.id ?? `bookmark-${now}-${Math.random().toString(36).slice(2, 10)}`,
     resourceKey: input.resourceKey,
-    anchorKey: input.anchorKey ?? readerLocatorAnchorKey(locator),
+    anchorKey: readerLocatorAnchorKey(locator),
     locator,
     ...(input.label ? { label: input.label } : {}),
     ...(input.excerpt ? { excerpt: input.excerpt } : {}),
@@ -32,6 +32,18 @@ function sortBookmarks(bookmarks: Bookmark[]) {
   return [...bookmarks].sort((left, right) => left.createdAt - right.createdAt || left.id.localeCompare(right.id))
 }
 
+function normalizeStoredBookmark(value: unknown): Bookmark | undefined {
+  if (!value || typeof value !== 'object') return undefined
+  const bookmark = value as Bookmark
+  const locator = normalizeReaderLocator(bookmark.locator)
+  if (!locator || bookmark.resourceKey !== locator.resourceKey || typeof bookmark.id !== 'string') return undefined
+  return { ...bookmark, locator, anchorKey: readerLocatorAnchorKey(locator) }
+}
+
+function normalizeStoredBookmarks(values: unknown[]) {
+  return values.flatMap((value) => { const bookmark = normalizeStoredBookmark(value); return bookmark ? [bookmark] : [] })
+}
+
 function toggleInput(inputOrResource: BookmarkInput | string, locator?: ReaderLocator, details?: Omit<Partial<BookmarkInput>, 'resourceKey' | 'locator'>): BookmarkInput {
   return typeof inputOrResource === 'string' ? { resourceKey: inputOrResource, locator: locator!, ...details } as BookmarkInput : inputOrResource
 }
@@ -40,8 +52,8 @@ export class MemoryBookmarkRepository implements BookmarkRepository {
   private readonly bookmarks = new Map<string, Bookmark>()
   private readonly anchors = new Map<string, string>()
 
-  async listForResource(resourceKey: string) { return sortBookmarks([...this.bookmarks.values()].filter((bookmark) => bookmark.resourceKey === resourceKey)) }
-  async findByAnchor(resourceKey: string, anchorKey: string) { const id = this.anchors.get(`${resourceKey}\u0000${anchorKey}`); return id ? this.bookmarks.get(id) : undefined }
+  async listForResource(resourceKey: string) { return sortBookmarks(normalizeStoredBookmarks([...this.bookmarks.values()]).filter((bookmark) => bookmark.resourceKey === resourceKey)) }
+  async findByAnchor(resourceKey: string, anchorKey: string) { const id = this.anchors.get(`${resourceKey}\u0000${anchorKey}`); const bookmark = id ? normalizeStoredBookmark(this.bookmarks.get(id)) : undefined; return bookmark?.resourceKey === resourceKey ? bookmark : undefined }
   async add(input: BookmarkInput) {
     const bookmark = bookmarkFromInput(input)
     const existing = await this.findByAnchor(bookmark.resourceKey, bookmark.anchorKey)
@@ -66,12 +78,12 @@ export class MemoryBookmarkRepository implements BookmarkRepository {
 export class IndexedDbBookmarkRepository implements BookmarkRepository {
   async listForResource(resourceKey: string) {
     const db = await openDatabase()
-    try { return sortBookmarks(await requestResult(db.transaction('bookmarks').objectStore('bookmarks').index('resourceKey').getAll(resourceKey)) as Bookmark[]) } finally { db.close() }
+    try { return sortBookmarks(normalizeStoredBookmarks(await requestResult(db.transaction('bookmarks').objectStore('bookmarks').index('resourceKey').getAll(resourceKey)) as unknown[])) } finally { db.close() }
   }
   async findByAnchor(resourceKey: string, anchorKey: string) {
     const db = await openDatabase()
     try {
-      const record = await requestResult(db.transaction('bookmarks').objectStore('bookmarks').index('anchorKey').get(anchorKey)) as Bookmark | undefined
+      const record = normalizeStoredBookmark(await requestResult(db.transaction('bookmarks').objectStore('bookmarks').index('anchorKey').get(anchorKey)))
       return record?.resourceKey === resourceKey ? record : undefined
     } finally { db.close() }
   }
@@ -92,7 +104,7 @@ export class IndexedDbBookmarkRepository implements BookmarkRepository {
           const duplicate = await this.findByAnchor(bookmark.resourceKey, bookmark.anchorKey)
           if (duplicate) return duplicate
         }
-        throw error
+        throw storageError('LumaRead could not save this bookmark.')
       }
       return bookmark
     } finally { db.close() }

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { IDBFactory } from 'fake-indexeddb'
+import { IDBDatabase, IDBFactory } from 'fake-indexeddb'
 import { afterEach, describe, expect, it } from 'vitest'
 import type { BookmarkInput } from '../domain'
 import { IndexedDbBookmarkRepository, MemoryBookmarkRepository } from './bookmark-repository'
@@ -16,12 +16,22 @@ describe('bookmark repositories', () => {
 
   it('deduplicates and toggles the same normalized position in memory', async () => {
     const repository = new MemoryBookmarkRepository()
-    const first = await repository.add(input)
-    const duplicate = await repository.add({ ...input, id: 'different-id' })
+    const first = await repository.add({ ...input, anchorKey: 'stale-non-canonical-key' })
+    const duplicate = await repository.add({ ...input, id: 'different-id', locator: { ...locator, sectionId: ' section-1 ', sectionIndex: 0.4 } })
     expect(duplicate).toEqual(first)
+    expect(first.anchorKey).toContain('imported:book')
     await expect(repository.listForResource(locator.resourceKey)).resolves.toHaveLength(1)
     await repository.toggleAtLocator(input)
     await expect(repository.listForResource(locator.resourceKey)).resolves.toHaveLength(0)
+  })
+
+  it('scopes bookmark queries by resource even when anchor keys are globally indexed', async () => {
+    const repository = new MemoryBookmarkRepository()
+    const saved = await repository.add(input)
+    expect(await repository.findByAnchor('imported:other', saved.anchorKey)).toBeUndefined()
+    await repository.add({ ...input, resourceKey: 'imported:other', locator: { ...locator, resourceKey: 'imported:other' } })
+    expect(await repository.listForResource(locator.resourceKey)).toHaveLength(1)
+    expect(await repository.listForResource('imported:other')).toHaveLength(1)
   })
 
   it('waits for IndexedDB writes and preserves v4 data while adding the v5 store', async () => {
@@ -30,5 +40,16 @@ describe('bookmark repositories', () => {
     const repository = new IndexedDbBookmarkRepository(); const [saved, duplicate] = await Promise.all([repository.add(input), repository.add({ ...input, id: 'concurrent-duplicate' })]); expect(saved.anchorKey).toContain('block-1'); expect(duplicate.anchorKey).toBe(saved.anchorKey); await expect(repository.findByAnchor(locator.resourceKey, saved.anchorKey)).resolves.toEqual(saved)
     const upgraded = await openDatabase(); database = upgraded; expect(upgraded.version).toBe(5); expect(upgraded.objectStoreNames.contains('bookmarks')).toBe(true); expect(await requestResult(upgraded.transaction('locations').objectStore('locations').get('book'))).toMatchObject({ documentId: 'book' })
     await repository.toggleAtLocator(input); await expect(repository.listForResource(locator.resourceKey)).resolves.toHaveLength(0)
+  })
+
+  it('converts a bookmark transaction abort into a safe storage error', async () => {
+    const factory = new IDBFactory(); Object.assign(globalThis, { indexedDB: factory, window: globalThis })
+    const originalTransaction = IDBDatabase.prototype.transaction
+    IDBDatabase.prototype.transaction = function abortingTransaction(this: IDBDatabase, storeNames: string | string[], mode?: IDBTransactionMode) {
+      const transaction = originalTransaction.call(this, storeNames, mode)
+      if (storeNames === 'bookmarks' && mode === 'readwrite') queueMicrotask(() => transaction.abort())
+      return transaction
+    }
+    try { await expect(new IndexedDbBookmarkRepository().add(input)).rejects.toMatchObject({ code: 'storage-failed' }) } finally { IDBDatabase.prototype.transaction = originalTransaction }
   })
 })

@@ -29,6 +29,11 @@ export function BrandMark() {
   )
 }
 
+function BuildInfo() {
+  const label = import.meta.env.DEV ? `Development build · ${__LUMAREAD_BUILD__.commit}` : `Version ${__LUMAREAD_BUILD__.version}`
+  return <small aria-label={label} className="home-build-info" data-testid="build-info">{label}</small>
+}
+
 export function HomeNavigation({ placement }: HomeNavigationProps) {
   const items: NavigationItem[] = [
     { icon: Home, label: 'Home', to: '/', active: true },
@@ -77,10 +82,11 @@ export function Sidebar() {
       <HomeNavigation placement="sidebar" />
       <div className="home-sidebar__footer">
         <ThemeToggle />
-        <div>
+        <div className="home-sidebar__appearance">
           <span>Appearance</span>
           <small>Light or dark</small>
         </div>
+        <BuildInfo />
       </div>
     </aside>
   )

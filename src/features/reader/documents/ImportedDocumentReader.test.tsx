@@ -53,6 +53,10 @@ describe('ImportedDocumentReader internal link harness', () => {
     click(anchor('Note')); expect(container.querySelector('[aria-label="Footnote"]')).not.toBeNull(); expect(container.querySelector('[aria-label="Back to Library"]')).not.toBeNull(); click(container.querySelector('[aria-label="Search in current book"]')!); expect(container.querySelector('[aria-label="Footnote"]')).toBeNull(); expect(container.querySelector('[aria-label="Search in current book"]')).not.toBeNull()
   })
 
+  it('returns focus to the footnote reference when Escape closes the preview', async () => {
+    const reference = anchor('Note'); click(reference); await act(async () => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })); await new Promise((resolve) => window.requestAnimationFrame(resolve)) }); expect(container.querySelector('[aria-label="Footnote"]')).toBeNull(); expect(document.activeElement).toBe(reference)
+  })
+
   it('keeps reader panels mutually exclusive and Escape closes the panel before leaving', async () => {
     click(container.querySelector('[aria-label="More"]')!); expect(container.querySelector('[aria-label="More reader options"]')).not.toBeNull(); click(container.querySelector('[aria-label="Settings"]')!); expect(container.querySelector('[aria-label="More reader options"]')).toBeNull(); expect(container.querySelector('[aria-label="Reading settings"]')).not.toBeNull(); await act(async () => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })) }); expect(container.querySelector('[aria-label="Reading settings"]')).toBeNull(); expect(navigate).not.toHaveBeenCalled(); await act(async () => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })); await Promise.resolve() }); expect(navigate).toHaveBeenCalled()
   })

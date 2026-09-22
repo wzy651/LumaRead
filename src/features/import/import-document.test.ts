@@ -19,7 +19,7 @@ describe('document import', () => {
     const imported = await importDocument(source(format), repository)
     const stored = await repository.getDocument(imported.id)
     expect(imported.format).toBe(format)
-    expect(stored).toMatchObject({ document: { metadata: { title: `${format} title` } }, capabilities: { reflowable: true }, sections: [{ id: `${format}-section`, blocks: [{ text: `${format} text` }] }] })
+    expect(stored).toMatchObject({ document: { metadata: { title: `${format} title` } }, capabilities: { reflowable: true, supportsSearch: true }, sections: [{ id: `${format}-section`, blocks: [{ text: `${format} text` }] }] })
   })
 
   it.each(['txt', 'epub', 'pdf', 'docx'] as const)('detects duplicate %s content by SHA-256', async (format) => {

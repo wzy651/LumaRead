@@ -43,4 +43,64 @@ describe('EPUB adapter', () => {
     expect(cross.text).toContain('remote')
     expect(cross.links).toHaveLength(1)
   })
+
+  it('keeps missing same- and cross-section fragments as plain text while allowing chapter-only hrefs', async () => {
+    const parsed = await epubAdapter.parse(await fixture({ chapters: [
+      { name: 'one.xhtml', body: '<p><a href="#missing">same missing</a> <a href="two.xhtml#missing">cross missing</a> <a href="two.xhtml">chapter only</a></p>' },
+      { name: 'two.xhtml', body: '<h1 id="present">Two</h1><p>Destination</p>' },
+    ] }))
+    const links = parsed.sections[0].blocks[0].links
+    expect(links).toEqual([{ id: 'block-0-link-2', start: 27, end: 39, role: 'link', target: { sectionId: 'section-1' } }])
+    expect(parsed.capabilities.supportsInternalLinks).toBe(true)
+    const missingOnly = await epubAdapter.parse(await fixture({ chapters: [{ name: 'one.xhtml', body: '<p><a href="#missing">missing</a></p>' }] }))
+    expect(missingOnly.sections[0].blocks[0].links).toEqual([])
+    expect(missingOnly.capabilities.supportsInternalLinks).toBe(false)
+  })
+
+  it('rejects malformed fragments, unsafe protocols, and paths outside the EPUB root', async () => {
+    const parsed = await epubAdapter.parse(await fixture({ chapters: [{ name: 'Text/one.xhtml', body: '<p><a href="#bad%">bad</a> <a href="../../outside.xhtml">outside</a> <a href="https://example.com">http</a> <a href="mailto:a@example.com">mail</a> <a href="javascript:alert(1)">js</a> <a href="data:text/plain,x">data</a> <a href="//example.com/x">protocol</a></p>' }] }))
+    expect(parsed.sections[0].blocks[0].links).toEqual([])
+    expect(parsed.capabilities.supportsInternalLinks).toBe(false)
+  })
+
+  it('resolves a same-chapter fragment to the exact block and preserves nested inline text', async () => {
+    const parsed = await epubAdapter.parse(await fixture({ chapters: [{ name: 'chapter.xhtml', body: '<h1 id="start">Start</h1><p>  Read <strong><em><span>note</span></em></strong>  <a href="#start">again</a></p>' }] }))
+    const block = parsed.sections[0].blocks[1]
+    expect(block.text).toBe('Read note again'); expect(block.links?.[0].start).toBe(10); expect(block.links?.[0].end).toBe(15); expect(block.links?.[0].target).toEqual({ sectionId: 'section-0', blockId: 'block-0' })
+  })
+
+  it('resolves parent-directory hrefs without crossing the EPUB root', async () => {
+    const parsed = await epubAdapter.parse(await fixture({ chapters: [{ name: 'Text/one.xhtml', body: '<p><a href="../two.xhtml#target">parent</a></p>' }, { name: 'two.xhtml', body: '<h1 id="target">Target</h1>' }] }))
+    expect(parsed.sections[0].blocks[0].links?.[0].target).toEqual({ sectionId: 'section-1', blockId: 'block-0' })
+  })
+
+  it('uses deterministic first-block container anchors and exact anchors per chapter', async () => {
+    const parsed = await epubAdapter.parse(await fixture({ chapters: [
+      { name: 'a/one.xhtml', body: '<div id="body-anchor"><aside id="note" epub:type="footnote"><p>first</p><p id="second">second</p></aside><p><a href="#note">note</a> <a href="#body-anchor">body</a></p></div>' },
+      { name: 'b/two.xhtml', body: '<h1 id="same">Other</h1><p><a href="../a/one.xhtml#same">missing same chapter</a></p>' },
+    ] }))
+    const note = parsed.sections[0].blocks.find((block) => block.text === 'first')!
+    const source = parsed.sections[0].blocks.find((block) => block.text.startsWith('note'))!
+    expect(source.links?.[0].target).toEqual({ sectionId: 'section-0', blockId: note.id })
+    expect(source.links?.[1].target).toEqual({ sectionId: 'section-0', blockId: 'block-0' })
+    expect(parsed.sections[0].blocks.find((block) => block.text === 'second')?.anchors).not.toContain('note')
+    expect(parsed.sections[1].blocks.find((block) => block.text.startsWith('missing'))?.links).toEqual([])
+  })
+
+  it('isolates repeated fragment ids between chapters and supports encoded relative paths', async () => {
+    const parsed = await epubAdapter.parse(await fixture({ chapters: [
+      { name: 'Text/one.xhtml', body: '<p><a href="two%20dir/two%20file.xhtml#target%20id">go</a></p>' },
+      { name: 'Text/two dir/two file.xhtml', body: '<h1 id="target id">Target</h1>' },
+      { name: 'Other/two dir/two file.xhtml', body: '<h1 id="target id">Other target</h1>' },
+    ] }))
+    expect(parsed.sections[0].blocks[0].links?.[0].target).toEqual({ sectionId: 'section-1', blockId: 'block-0' })
+    expect(parsed.sections[1].blocks[0].id).toBe('block-0')
+    expect(parsed.sections[2].blocks[0].id).toBe('block-0')
+  })
+
+  it('produces stable block and link ids across repeated parses', async () => {
+    const source = await fixture({ chapters: [{ name: 'one.xhtml', body: '<p><a href="#target">same</a> <a href="#target">same</a></p><p id="target">Target</p>' }] })
+    const first = await epubAdapter.parse(source); const second = await epubAdapter.parse(source)
+    expect(second.sections).toEqual(first.sections); expect(first.capabilities.supportsInternalLinks).toBe(true)
+  })
 })

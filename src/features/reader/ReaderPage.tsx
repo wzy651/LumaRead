@@ -77,8 +77,8 @@ export function ReaderPage() {
   if (!bookId || bookId !== readerChapter.bookId) return <Navigate replace to={'/reader/' + currentBook.id} />
 
   function exitReader() { if (window.history.length > 1) navigate(-1); else navigate('/') }
-  function openDictionary(item: VocabularyItem, anchor: HTMLElement) { setLookupCounts((current) => ({ ...current, [item.id]: (current[item.id] ?? 0) + 1 })); setMoreVisible(false); setBookmarksAnchor(undefined); setActivePanel({ anchor, kind: 'dictionary', vocabularyId: item.id }) }
-  function openSentence(aidId: string, anchor: HTMLElement) { setActivePanel({ aidId, anchor, kind: 'sentence' }) }
+  function openDictionary(item: VocabularyItem, anchor: HTMLElement) { setLookupCounts((current) => ({ ...current, [item.id]: (current[item.id] ?? 0) + 1 })); setMoreVisible(false); setBookmarksAnchor(undefined); setSearchAnchor(undefined); setActivePanel({ anchor, kind: 'dictionary', vocabularyId: item.id }) }
+  function openSentence(aidId: string, anchor: HTMLElement) { setBookmarksAnchor(undefined); setSearchAnchor(undefined); setActivePanel({ aidId, anchor, kind: 'sentence' }) }
   function openChromePanel(kind: 'settings' | 'more', anchor: HTMLButtonElement) { setBookmarksAnchor(undefined); setSearchAnchor(undefined); setActivePanel({ anchor, kind }) }
   function currentLocator() { return createLocatorFromCurrentPosition({ resourceKey, sections: mockSections, sectionIndex: 0 }) }
   function currentBookmark() { const locator = currentLocator(); if (!locator) return undefined; const anchorKey = readerLocatorAnchorKey(locator); return bookmarks.find((bookmark) => { const normalized = normalizeReaderLocator(bookmark.locator); return normalized ? readerLocatorAnchorKey(normalized) === anchorKey : false }) }

@@ -392,6 +392,18 @@
 .reader-bookmark__open small { color: var(--color-text-muted); font-size: .68rem; }
 .reader-bookmark__delete { width: 44px; min-height: 44px; align-self: center; border: 0; background: transparent; color: var(--color-text-muted); cursor: pointer; }
 .reader-bookmark__delete:hover, .reader-bookmark__delete:focus-visible { color: var(--color-action); }
+.reader-search { display: grid; gap: var(--space-3); min-width: min(340px, 100%); }
+.reader-search__input-row { display: flex; align-items: center; gap: var(--space-2); }
+.reader-search__input-row input { box-sizing: border-box; min-width: 0; min-height: 44px; flex: 1; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-page); color: var(--color-text); font: inherit; padding: 0 var(--space-3); }
+.reader-search__input-row input:focus-visible { outline: 2px solid var(--color-action); outline-offset: 2px; }
+.reader-search__clear { min-height: 44px; border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--color-action); cursor: pointer; padding: 0 var(--space-2); }
+.reader-search__status { min-height: 1.4em; margin: 0; color: var(--color-text-muted); font-size: .78rem; line-height: 1.45; }
+.reader-search__results { display: grid; max-height: min(48vh, 420px); gap: var(--space-2); overflow: auto; margin: 0; padding: 0; list-style: none; }
+.reader-search-result { display: grid; width: 100%; gap: 4px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: transparent; color: var(--color-text); cursor: pointer; padding: 10px 12px; text-align: left; }
+.reader-search-result:hover, .reader-search-result:focus-visible, .reader-search-result.is-selected { border-color: var(--color-accent); background: var(--color-accent-subtle); }
+.reader-search-result strong { color: var(--color-action); font-size: .75rem; font-weight: 700; }
+.reader-search-result__excerpt { color: var(--color-text-muted); font-family: var(--font-reading); font-size: .82rem; line-height: 1.45; }
+.reader-search-result mark { border-radius: 2px; background: color-mix(in srgb, var(--color-accent) 42%, transparent); color: inherit; }
 
 .dictionary-content__heading {
   display: flex;

@@ -26,4 +26,21 @@ describe('EPUB adapter', () => {
   it('rejects invalid ZIP data and missing package/spine data', async () => { const bad = new Blob(['not a zip']); await expect(epubAdapter.supports({ blob: bad, fileName: 'bad.epub', size: bad.size })).resolves.toBe(false); await expect(epubAdapter.parse({ blob: bad, fileName: 'bad.epub', size: bad.size })).rejects.toMatchObject({ code: 'invalid-document' }); await expect(epubAdapter.parse(await fixture({ includeSpine: false }))).rejects.toMatchObject({ code: 'invalid-document' }) })
   it('uses the file name for missing title and rejects empty spine content', async () => { const missingTitle = await fixture({ title: '' }); const parsed = await epubAdapter.parse({ ...missingTitle, fileName: 'fallback.epub' }); expect(parsed.metadata.title).toBe('fallback'); await expect(epubAdapter.parse(await fixture({ chapters: [{ name: 'empty.xhtml', body: '<script>bad()</script><iframe></iframe>' }] }))).rejects.toMatchObject({ code: 'empty-file' }) })
   it('only reads a signature slice in supports and the complete blob once in parse', async () => { const original = await fixture(); let fullReads = 0; let slices = 0; const blob = { size: original.blob.size, arrayBuffer: async () => { fullReads += 1; return original.blob.arrayBuffer() }, slice: (...args: Parameters<Blob['slice']>) => { slices += 1; return original.blob.slice(...args) } } as unknown as Blob; const source = { ...original, blob }; await expect(epubAdapter.supports(source)).resolves.toBe(true); expect({ fullReads, slices }).toEqual({ fullReads: 0, slices: 1 }); await epubAdapter.parse(source); expect(fullReads).toBe(1) })
+  it('keeps safe UTF-16 ranges and resolves same- and cross-section links after both phases', async () => {
+    const parsed = await epubAdapter.parse(await fixture({ chapters: [
+      { name: 'Text/one.xhtml', body: '<h1 id="start">One</h1><p>😀 Before <a href="#note" epub:type="noteref">note</a> and <a href="#note">note</a>.</p><aside id="note" epub:type="footnote"><p id="note-text">A <strong>safe</strong> note.</p></aside><p><a href="two.xhtml#target">Next</a> <a href="https://bad.example">remote</a> <a href="javascript:bad()">bad</a></p>' },
+      { name: 'Text/two.xhtml', body: '<h2 id="target">Two</h2><p>Destination.</p>' },
+    ] }))
+    const first = parsed.sections[0].blocks.find((block) => block.type === 'paragraph' && block.text.startsWith('😀'))!
+    expect(first.text).toBe('😀 Before note and note.')
+    expect(first.links).toHaveLength(2)
+    expect(first.links?.map((link) => [link.start, link.end, link.role, link.target])).toEqual([
+      [10, 14, 'noteref', { sectionId: 'section-0', blockId: 'block-2' }],
+      [19, 23, 'noteref', { sectionId: 'section-0', blockId: 'block-2' }],
+    ])
+    const cross = parsed.sections[0].blocks.find((block) => block.text.startsWith('Next'))!
+    expect(cross.links).toEqual([{ id: 'block-3-link-0', start: 0, end: 4, role: 'link', target: { sectionId: 'section-1', blockId: 'block-0' } }])
+    expect(cross.text).toContain('remote')
+    expect(cross.links).toHaveLength(1)
+  })
 })

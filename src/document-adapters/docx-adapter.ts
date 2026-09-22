@@ -9,6 +9,7 @@ const baseCapabilities: Omit<DocumentCapabilities, 'supportsTableOfContents'> = 
   supportsSearch: false,
   supportsPagination: false,
   supportsReadAloud: false,
+  supportsInternalLinks: false,
 }
 
 type HtmlBlock =

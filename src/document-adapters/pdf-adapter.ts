@@ -13,6 +13,7 @@ const capabilities: DocumentCapabilities = {
   supportsTableOfContents: false,
   supportsPagination: true,
   supportsReadAloud: false,
+  supportsInternalLinks: false,
 }
 
 type PdfTextItem = { str: string; transform: number[]; width: number; height: number; hasEOL: boolean }

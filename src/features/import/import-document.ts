@@ -3,6 +3,7 @@ import { DocumentError, type DocumentRepository, type ImportedDocument } from '.
 import { formatFromName, validateFileSignature } from '../../platform/files'
 import type { DocumentSource } from '../../domain/documents'
 import { hasSearchableText } from '../reader/reader-search'
+import { currentContentSchemaVersion } from '../../storage/database'
 
 async function fingerprint(source: DocumentSource) { const bytes = await source.blob.arrayBuffer(); const hash = await crypto.subtle.digest('SHA-256', bytes); return [...new Uint8Array(hash)].map((byte) => byte.toString(16).padStart(2, '0')).join('') }
 export async function importDocument(source: DocumentSource, repository: DocumentRepository): Promise<ImportedDocument> {
@@ -12,5 +13,5 @@ export async function importDocument(source: DocumentSource, repository: Documen
   const parsed = await adapter.parse(source)
   const contentFingerprint = await fingerprint(source); if (await repository.hasDocument(contentFingerprint)) throw new DocumentError('duplicate-document', 'This document is already in your library.')
   const now = new Date().toISOString(); const document: ImportedDocument = { id: crypto.randomUUID(), format, fileName: source.fileName, fileSize: source.size, importedAt: now, updatedAt: now, metadata: parsed.metadata, fingerprint: contentFingerprint, status: 'ready' }
-  await repository.saveDocument({ document, source: source.blob, sections: parsed.sections, capabilities: { ...parsed.capabilities, supportsSearch: parsed.capabilities.supportsSearch || hasSearchableText(parsed.sections) } }); return document
+  await repository.saveDocument({ document, source: source.blob, sections: parsed.sections, contentSchemaVersion: currentContentSchemaVersion, capabilities: { ...parsed.capabilities, supportsSearch: parsed.capabilities.supportsSearch || hasSearchableText(parsed.sections), supportsInternalLinks: parsed.capabilities.supportsInternalLinks ?? false } }); return document
 }

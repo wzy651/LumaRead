@@ -1,6 +1,6 @@
 import { DocumentError, type DocumentAdapter, type DocumentCapabilities, type DocumentSource, type ParsedDocument } from '../domain/documents'
 
-const capabilities: DocumentCapabilities = { reflowable: true, supportsOriginalLayout: false, supportsTextSelection: true, supportsSearch: false, supportsTableOfContents: false, supportsPagination: false, supportsReadAloud: false }
+const capabilities: DocumentCapabilities = { reflowable: true, supportsOriginalLayout: false, supportsTextSelection: true, supportsSearch: false, supportsTableOfContents: false, supportsPagination: false, supportsReadAloud: false, supportsInternalLinks: false }
 function titleFromFile(fileName: string) { return fileName.replace(/\.txt$/i, '') || 'Untitled document' }
 async function textFrom(source: DocumentSource) {
   let text: string

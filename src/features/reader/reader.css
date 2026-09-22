@@ -204,6 +204,29 @@
   margin: 0 0 1.45em;
 }
 
+.reader-prose a[data-internal-link-id] {
+  color: var(--color-action);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--color-action) 58%, transparent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+}
+
+.reader-prose a[data-internal-link-id]:hover,
+.reader-prose a[data-internal-link-id]:focus-visible {
+  border-radius: 3px;
+  background: var(--color-accent-subtle);
+  outline: 2px solid color-mix(in srgb, var(--color-action) 52%, transparent);
+  outline-offset: 2px;
+}
+
+.reader-prose [data-reader-block-id].reader-block--target {
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--color-accent-subtle) 70%, transparent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-accent-subtle) 44%, transparent);
+  transition: background-color 180ms ease, box-shadow 180ms ease;
+}
+
 .reader-article--justify .reader-prose p,
 .reader-article--justify .reader-prose blockquote {
   hyphens: auto;
@@ -404,6 +427,10 @@
 .reader-search-result strong { color: var(--color-action); font-size: .75rem; font-weight: 700; }
 .reader-search-result__excerpt { color: var(--color-text-muted); font-family: var(--font-reading); font-size: .82rem; line-height: 1.45; }
 .reader-search-result mark { border-radius: 2px; background: color-mix(in srgb, var(--color-accent) 42%, transparent); color: inherit; }
+
+.reader-footnote { display: grid; gap: var(--space-4); min-width: min(320px, 100%); }
+.reader-footnote p { max-height: min(48vh, 420px); margin: 0; overflow: auto; font-family: var(--font-reading); font-size: .96rem; line-height: 1.65; white-space: pre-wrap; }
+.reader-footnote button { min-height: 44px; justify-self: start; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: transparent; color: var(--color-action); cursor: pointer; padding: 0 var(--space-3); }
 
 .dictionary-content__heading {
   display: flex;

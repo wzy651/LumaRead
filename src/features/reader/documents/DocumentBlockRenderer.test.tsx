@@ -19,4 +19,17 @@ describe('DocumentBlockRenderer', () => {
   it('groups only consecutive matching list items into valid lists while preserving mixed block order', () => {
     expect(renderToStaticMarkup(<DocumentBlockRenderer blocks={blocks} />)).toBe('<h2 data-reader-block-id="heading">Start</h2><ul><li data-reader-block-id="unordered-one">One</li><li data-reader-block-id="unordered-two">Two</li></ul><ol><li data-reader-block-id="ordered-one">Three</li></ol><blockquote data-reader-block-id="quote">Pause</blockquote><ol><li data-reader-block-id="ordered-two">Four</li></ol><hr aria-label="Page break" data-reader-block-id="break"/><ul><li data-reader-block-id="unordered-three">Five</li></ul><p data-reader-block-id="paragraph">End</p>')
   })
+
+  it('splits safe UTF-16 ranges into real links without rendering HTML', () => {
+    const block: DocumentBlock = { id: 'linked', type: 'paragraph', text: '😀 Read note', order: 0, links: [{ id: 'note-link', start: 8, end: 12, role: 'noteref', target: { sectionId: 'section-1', blockId: 'block-2' } }] }
+    const markup = renderToStaticMarkup(<DocumentBlockRenderer blocks={[block]} />)
+    expect(markup).toContain('😀 Read <a')
+    expect(markup).toContain('data-internal-link-id="note-link"')
+    expect(markup).not.toContain('dangerouslySetInnerHTML')
+  })
+
+  it('falls back to plain text for overlapping or malformed ranges', () => {
+    const block: DocumentBlock = { id: 'unsafe', type: 'paragraph', text: 'One two', order: 0, links: [{ id: 'a', start: 0, end: 4, role: 'link', target: { sectionId: 's' } }, { id: 'b', start: 3, end: 7, role: 'link', target: { sectionId: 's' } }] }
+    expect(renderToStaticMarkup(<DocumentBlockRenderer blocks={[block]} />)).toBe('<p data-reader-block-id="unsafe">One two</p>')
+  })
 })

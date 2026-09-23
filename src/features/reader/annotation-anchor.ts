@@ -46,7 +46,7 @@ function segmentForBlock(info: BlockInfo, range: Range, startInfo: BlockInfo, en
   const startOffset = safelyClampOffset(start, info.block.text)
   const endOffset = safelyClampOffset(end, info.block.text)
   if (startOffset >= endOffset) return undefined
-  return { sectionId: info.section.id, sectionIndex: info.sectionIndex, blockId: info.block.id, startOffset, endOffset, exact: info.block.text.slice(startOffset, endOffset), prefix: info.block.text.slice(Math.max(0, startOffset - annotationContextLength), startOffset), suffix: info.block.text.slice(endOffset, endOffset + annotationContextLength) }
+  return { sectionId: info.section.id, sectionIndex: info.sectionIndex, blockId: info.block.id, blockOrder: info.block.order, startOffset, endOffset, exact: info.block.text.slice(startOffset, endOffset), prefix: info.block.text.slice(Math.max(0, startOffset - annotationContextLength), startOffset), suffix: info.block.text.slice(endOffset, endOffset + annotationContextLength) }
 }
 
 function allBlocks(root: ParentNode, sections: DocumentSection[]) {
@@ -116,19 +116,19 @@ export function recoverAnnotation(annotation: ReaderAnnotation, sections: Docume
     const exactBlock = findBlock(sections, segment)
     const originalText = exactBlock?.block.text
     let resolved: TextAnchorSegment | undefined
-    if (originalText && originalText.slice(segment.startOffset, segment.endOffset) === segment.exact) resolved = { ...segment, sectionIndex: sections.indexOf(exactBlock.section) }
+    if (originalText && originalText.slice(segment.startOffset, segment.endOffset) === segment.exact) resolved = { ...segment, sectionIndex: sections.indexOf(exactBlock.section), blockOrder: exactBlock.block.order }
     if (!resolved && originalText) {
       const candidates = candidateOffsets(originalText, segment.exact, segment.prefix, segment.suffix)
       const bestScore = Math.max(...candidates.map((candidate) => candidate.score), -1)
       const best = candidates.filter((candidate) => candidate.score === bestScore)
-      if (best.length === 1) { const candidate = best[0]; resolved = { ...segment, sectionIndex: sections.indexOf(exactBlock.section), startOffset: candidate.start, endOffset: candidate.end, prefix: originalText.slice(Math.max(0, candidate.start - annotationContextLength), candidate.start), suffix: originalText.slice(candidate.end, candidate.end + annotationContextLength) } }
+      if (best.length === 1) { const candidate = best[0]; resolved = { ...segment, sectionIndex: sections.indexOf(exactBlock.section), blockOrder: exactBlock.block.order, startOffset: candidate.start, endOffset: candidate.end, prefix: originalText.slice(Math.max(0, candidate.start - annotationContextLength), candidate.start), suffix: originalText.slice(candidate.end, candidate.end + annotationContextLength) } }
     }
     if (!resolved) {
       const section = sections.find((candidate) => candidate.id === segment.sectionId)
       const matches = section?.blocks.flatMap((block) => candidateOffsets(block.text, segment.exact, segment.prefix, segment.suffix).map((candidate) => ({ block, candidate }))) ?? []
       const bestScore = Math.max(...matches.map((match) => match.candidate.score), -1)
       const best = matches.filter((match) => match.candidate.score === bestScore)
-      if (best.length === 1) { const match = best[0]; resolved = { ...segment, sectionIndex: sections.indexOf(section!), blockId: match.block.id, startOffset: match.candidate.start, endOffset: match.candidate.end, prefix: match.block.text.slice(Math.max(0, match.candidate.start - annotationContextLength), match.candidate.start), suffix: match.block.text.slice(match.candidate.end, match.candidate.end + annotationContextLength) } }
+      if (best.length === 1) { const match = best[0]; resolved = { ...segment, sectionIndex: sections.indexOf(section!), blockId: match.block.id, blockOrder: match.block.order, startOffset: match.candidate.start, endOffset: match.candidate.end, prefix: match.block.text.slice(Math.max(0, match.candidate.start - annotationContextLength), match.candidate.start), suffix: match.block.text.slice(match.candidate.end, match.candidate.end + annotationContextLength) } }
     }
     if (resolved) recovered.push(resolved)
     else status = 'orphaned'

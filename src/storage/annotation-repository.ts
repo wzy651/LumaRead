@@ -12,7 +12,7 @@ export interface AnnotationRepository {
   deleteForResource(resourceKey: string): Promise<void>
 }
 
-function sortAnnotations(values: ReaderAnnotation[]) { return [...values].sort((left, right) => left.segments[0]?.sectionIndex - right.segments[0]?.sectionIndex || left.segments[0]?.startOffset - right.segments[0]?.startOffset || left.createdAt - right.createdAt || left.id.localeCompare(right.id)) }
+function sortAnnotations(values: ReaderAnnotation[]) { return [...values].sort((left, right) => { const a = left.segments[0]; const b = right.segments[0]; return (a?.sectionIndex ?? 0) - (b?.sectionIndex ?? 0) || (a?.blockOrder ?? Number.MAX_SAFE_INTEGER) - (b?.blockOrder ?? Number.MAX_SAFE_INTEGER) || (a?.startOffset ?? 0) - (b?.startOffset ?? 0) || left.createdAt - right.createdAt || left.id.localeCompare(right.id) }) }
 function normalizeStored(value: unknown) { return isValidAnnotation(value) ? annotationFromInput(value) : undefined }
 function duplicateError() { return new DocumentError('storage-failed', 'This text is already highlighted.') }
 
@@ -22,7 +22,7 @@ export class MemoryAnnotationRepository implements AnnotationRepository {
   async listForResource(resourceKey: string) { return sortAnnotations([...this.annotations.values()].filter((annotation) => annotation.resourceKey === resourceKey).flatMap((value) => { const annotation = normalizeStored(value); return annotation ? [annotation] : [] })) }
   async get(annotationId: string) { return normalizeStored(this.annotations.get(annotationId)) }
   async findByAnchor(resourceKey: string, anchorKey: string) { const id = this.anchors.get(`${resourceKey}\u0000${anchorKey}`); return id ? this.get(id) : undefined }
-  async add(input: AnnotationInput) { const annotation = annotationFromInput(input); const existing = await this.findByAnchor(annotation.resourceKey, annotation.anchorKey); if (existing) return existing; this.annotations.set(annotation.id, annotation); this.anchors.set(`${annotation.resourceKey}\u0000${annotation.anchorKey}`, annotation.id); return annotation }
+  async add(input: AnnotationInput) { const annotation = annotationFromInput(input); const key = `${annotation.resourceKey}\u0000${annotation.anchorKey}`; const existingId = this.anchors.get(key); if (existingId) return this.annotations.get(existingId) ?? annotation; this.annotations.set(annotation.id, annotation); this.anchors.set(key, annotation.id); return annotation }
   async update(annotationId: string, patch: AnnotationPatch) { const current = await this.get(annotationId); if (!current) return undefined; const next = annotationFromInput({ ...current, ...patch, id: current.id, anchorKey: patch.segments ? annotationAnchorKey(patch.segments) : current.anchorKey, updatedAt: Date.now() }); if (next.anchorKey !== current.anchorKey) { const duplicate = await this.findByAnchor(next.resourceKey, next.anchorKey); if (duplicate && duplicate.id !== current.id) throw duplicateError(); this.anchors.delete(`${current.resourceKey}\u0000${current.anchorKey}`); this.anchors.set(`${next.resourceKey}\u0000${next.anchorKey}`, next.id) } this.annotations.set(annotationId, next); return next }
   async remove(annotationId: string) { const current = await this.get(annotationId); if (!current) return; this.annotations.delete(annotationId); this.anchors.delete(`${current.resourceKey}\u0000${current.anchorKey}`) }
   async deleteForResource(resourceKey: string) { for (const annotation of await this.listForResource(resourceKey)) await this.remove(annotation.id) }

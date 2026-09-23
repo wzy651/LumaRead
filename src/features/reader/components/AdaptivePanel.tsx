@@ -98,17 +98,6 @@ export function AdaptivePanel({ anchorElement, children, isMobile, label, onClos
     return () => document.removeEventListener('pointerdown', handleOutsidePointerDown, true)
   }, [anchorElement, isMobile, onClose])
 
-  useEffect(() => {
-    function handleDocumentKeyDown(event: globalThis.KeyboardEvent) {
-      if (event.key !== 'Escape' || event.defaultPrevented || event.isComposing) return
-      event.preventDefault()
-      onClose()
-    }
-
-    document.addEventListener('keydown', handleDocumentKeyDown)
-    return () => document.removeEventListener('keydown', handleDocumentKeyDown)
-  }, [onClose])
-
   function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
     if (!isMobile || event.key !== 'Tab' || !panelRef.current) return
     const focusable = getFocusableElements(panelRef.current)

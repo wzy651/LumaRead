@@ -7,6 +7,7 @@ export type TextAnchorSegment = {
   sectionId: string
   sectionIndex: number
   blockId: string
+  blockOrder?: number
   startOffset: number
   endOffset: number
   exact: string
@@ -46,16 +47,17 @@ export function normalizeTextAnchorSegments(segments: TextAnchorSegment[]): Text
     ...segment,
     sectionId: segment.sectionId,
     sectionIndex: Math.max(0, Math.round(segment.sectionIndex)),
+    ...(Number.isFinite(segment.blockOrder) ? { blockOrder: Math.max(0, Math.round(segment.blockOrder!)) } : {}),
     startOffset: Math.max(0, Math.round(segment.startOffset)),
     endOffset: Math.max(0, Math.round(segment.endOffset)),
     exact: segment.exact.slice(0, maxAnnotationQuoteLength),
     prefix: segment.prefix.slice(-annotationContextLength),
     suffix: segment.suffix.slice(0, annotationContextLength),
-  } })).sort((left, right) => left.normalized.sectionIndex - right.normalized.sectionIndex || left.index - right.index || left.normalized.startOffset - right.normalized.startOffset).map(({ normalized }) => normalized)
+  } })).sort((left, right) => left.normalized.sectionIndex - right.normalized.sectionIndex || (left.normalized.blockOrder !== undefined && right.normalized.blockOrder !== undefined ? left.normalized.blockOrder - right.normalized.blockOrder : 0) || left.normalized.startOffset - right.normalized.startOffset || left.index - right.index).map(({ normalized }) => normalized)
 }
 
 export function annotationAnchorKey(segments: TextAnchorSegment[]): string {
-  return JSON.stringify(normalizeTextAnchorSegments(segments).map(({ sectionId, sectionIndex, blockId, startOffset, endOffset, exact }) => ({ sectionId, sectionIndex, blockId, startOffset, endOffset, exact })))
+  return JSON.stringify(normalizeTextAnchorSegments(segments).map(({ sectionId, sectionIndex, blockId, blockOrder, startOffset, endOffset, exact }) => ({ sectionId, sectionIndex, blockId, blockOrder, startOffset, endOffset, exact })))
 }
 
 export function annotationFromInput(input: AnnotationInput): ReaderAnnotation {
@@ -65,7 +67,7 @@ export function annotationFromInput(input: AnnotationInput): ReaderAnnotation {
   return {
     id: input.id ?? `annotation-${now}-${Math.random().toString(36).slice(2, 10)}`,
     resourceKey: input.resourceKey,
-    anchorKey: input.anchorKey ?? annotationAnchorKey(segments),
+    anchorKey: annotationAnchorKey(segments),
     segments,
     quote: input.quote.slice(0, maxAnnotationQuoteLength),
     color: validColor(input.color) ? input.color : 'lavender',
@@ -92,7 +94,7 @@ export function annotationsOverlap(left: TextAnchorSegment[], right: TextAnchorS
 }
 
 export function findAnnotationOverlap(annotations: ReaderAnnotation[], segments: TextAnchorSegment[]) {
-  return annotations.find((annotation) => annotationsOverlap(annotation.segments, segments))
+  return annotations.find((annotation) => !annotation.orphaned && annotationsOverlap(annotation.segments, segments))
 }
 
 export function annotationSegmentsForSection(annotation: ReaderAnnotation, sectionId: string) {

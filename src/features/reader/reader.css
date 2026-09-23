@@ -750,3 +750,6 @@
     transition: none;
   }
 }
+.selection-toolbar-host--mobile { inset: 0; transform: none; pointer-events: none; }
+.selection-toolbar-host--mobile .selection-toolbar { pointer-events: auto; flex-wrap: wrap; justify-content: center; gap: 4px; max-width: calc(100vw - max(24px, env(safe-area-inset-left) + env(safe-area-inset-right) + 24px)); }
+.selection-toolbar--mobile { left: max(12px, env(safe-area-inset-left)); right: max(12px, env(safe-area-inset-right)); bottom: calc(12px + env(safe-area-inset-bottom)); }

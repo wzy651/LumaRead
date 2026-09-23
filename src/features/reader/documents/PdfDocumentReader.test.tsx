@@ -2,6 +2,7 @@
 import { act, useState } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { ReaderAnnotation, ReaderLocation } from '../../../domain'
 import type { DocumentCapabilities, DocumentSection, ImportedDocument } from '../../../domain/documents'
 import { PdfDocumentReader } from './PdfDocumentReader'
 
@@ -10,9 +11,12 @@ import { PdfDocumentReader } from './PdfDocumentReader'
 const readerMock = vi.hoisted(() => ({
   pdfDocument: undefined as object | undefined,
   pageRenders: 0,
+  annotations: [] as unknown[],
+  updateAnnotation: vi.fn().mockResolvedValue(undefined),
 }))
 vi.mock('./usePdfDocument', () => ({ usePdfDocument: () => ({ document: readerMock.pdfDocument, error: undefined }) }))
-vi.mock('./usePdfLocation', () => ({ usePdfLocation: vi.fn() }))
+vi.mock('./usePdfLocation', () => ({ usePdfLocation: () => vi.fn() }))
+vi.mock('../../../storage', () => ({ getBookmarkRepository: () => ({ listForResource: vi.fn().mockResolvedValue([]), toggleAtLocator: vi.fn(), remove: vi.fn() }), getAnnotationRepository: () => ({ listForResource: async () => readerMock.annotations as ReaderAnnotation[], update: readerMock.updateAnnotation, remove: vi.fn().mockResolvedValue(undefined), add: vi.fn() }) }))
 vi.mock('../useReaderSettings', () => ({ useReaderSettings: () => ({ settings: { fontFamily: 'serif', fontScale: 1, lineHeight: 'comfortable', textWidthCh: 64, mobileSideMargin: 'comfortable', textAlignment: 'auto' } }) }))
 vi.mock('../useReaderChromeVisibility', () => ({ useReaderChromeVisibility: () => { const [visible, setVisible] = useState(true); return { chromeRef: { current: null }, hide: () => setVisible(false), reveal: () => setVisible(true), visible } } }))
 vi.mock('./PdfPage', () => ({ PdfPage: (props: { onError: () => void; pageNumber: number }) => { readerMock.pageRenders += 1; return <div className="mock-pdf-page"><span>PDF page {props.pageNumber}</span><button onClick={props.onError} type="button">simulate page error</button><div className="textLayer">text layer</div></div> } }))
@@ -28,9 +32,9 @@ describe('PdfDocumentReader', () => {
   let container: HTMLDivElement
   let onBack: ReturnType<typeof vi.fn<() => void>>
 
-  beforeEach(() => { readerMock.pdfDocument = {}; readerMock.pageRenders = 0; container = document.createElement('div'); document.body.append(container); onBack = vi.fn<() => void>() })
-  afterEach(() => { if (root) act(() => root?.unmount()); root = undefined; container.remove(); vi.clearAllMocks() })
-  function mount(isMobile = false, documentCapabilities = capabilities) { root = createRoot(container); act(() => root?.render(<PdfDocumentReader capabilities={documentCapabilities} document={imported} isMobile={isMobile} onBack={onBack} sections={sections} source={new Blob(['pdf'])} />)) }
+  beforeEach(() => { readerMock.pdfDocument = {}; readerMock.pageRenders = 0; readerMock.annotations = []; readerMock.updateAnnotation.mockClear(); container = document.createElement('div'); document.body.append(container); onBack = vi.fn<() => void>(); HTMLElement.prototype.scrollIntoView = vi.fn(); HTMLElement.prototype.scrollTo = vi.fn(); window.scrollTo = vi.fn() })
+  afterEach(() => { if (root) act(() => root?.unmount()); root = undefined; container.remove(); vi.restoreAllMocks(); vi.clearAllMocks() })
+  function mount(isMobile = false, documentCapabilities = capabilities, initialLocation?: ReaderLocation) { root = createRoot(container); act(() => root?.render(<PdfDocumentReader capabilities={documentCapabilities} document={imported} initialLocation={initialLocation} isMobile={isMobile} onBack={onBack} sections={sections} source={new Blob(['pdf'])} />)) }
   function more() { act(() => { container.querySelector<HTMLButtonElement>('[aria-label="More reader options"]')?.click() }) }
 
   it('shows Retry and Return to Library after a page error, then remounts the page on Retry', () => {
@@ -73,5 +77,33 @@ describe('PdfDocumentReader', () => {
 
   it('keeps PDF Chrome free of TOC and toggles only for stage background clicks', () => {
     mount(true); expect(container.querySelector('[aria-label*="Table of contents"]')).toBeNull(); const stage = container.querySelector('.pdf-reader__stage') as HTMLElement; act(() => stage.click()); expect(container.querySelector('[aria-label="Reader controls"]')?.getAttribute('aria-hidden')).toBe('true'); act(() => stage.click()); expect(container.querySelector('[aria-label="Reader controls"]')?.getAttribute('aria-hidden')).toBe('false'); act(() => container.querySelector('.textLayer')?.dispatchEvent(new MouseEvent('click', { bubbles: true }))); expect(container.querySelector('[aria-label="Reader controls"]')?.getAttribute('aria-hidden')).toBe('false'); more(); const panel = container.querySelector('.reader-panel') as HTMLElement; act(() => panel.click()); expect(container.querySelector('[aria-label="Reader controls"]')?.getAttribute('aria-hidden')).toBe('false')
+  })
+
+  it('opens PDF notes from Original Layout in Reading View and restores the prior state', async () => {
+    const annotation: ReaderAnnotation = { id: 'note-p1', resourceKey: 'imported:pdf-one', anchorKey: 'old-key', segments: [{ sectionId: 'page-1', sectionIndex: 0, blockId: 'p-1', startOffset: 0, endOffset: 4, exact: 'Page', prefix: '', suffix: ' 1' }], quote: 'Page', color: 'amber', note: 'Saved', createdAt: 1, updatedAt: 1 }
+    readerMock.annotations = [annotation]
+    const initialLocation: ReaderLocation = { documentId: 'pdf-one', sectionId: 'page-2', sectionIndex: 1, progressPercent: 0, updatedAt: '2026-01-01T00:00:00.000Z', pdf: { mode: 'original', zoomMode: 'custom', zoom: 1.25, rotation: 90, pageNumber: 2 } }
+    mount(false, capabilities, initialLocation)
+    await act(async () => { await Promise.resolve(); await Promise.resolve() })
+    const stage = container.querySelector('.pdf-reader__stage') as HTMLElement; stage.scrollTop = 123
+    more(); act(() => { Array.from(container.querySelectorAll('button')).find((button) => button.textContent === 'Highlights & Notes')?.click() })
+    act(() => { container.querySelector<HTMLButtonElement>('.highlights-notes__quote')?.click() })
+    await act(async () => { await new Promise((resolve) => window.requestAnimationFrame(resolve)) })
+    expect(container.querySelector('.reader-article')?.textContent).toContain('Page 1'); expect(container.querySelector('.reader-annotation')).not.toBeNull(); expect(HTMLElement.prototype.scrollIntoView).toHaveBeenCalled()
+    act(() => { container.querySelector<HTMLButtonElement>('[aria-label="Back to previous page"]')?.click() })
+    await act(async () => { await new Promise((resolve) => window.requestAnimationFrame(resolve)) })
+    expect(container.querySelector('.pdf-reader__stage')).not.toBeNull(); expect(container.textContent).toContain('PDF page 2'); expect(onBack).not.toHaveBeenCalled()
+  })
+
+  it('Escape closes PDF note editing without saving before the next Escape exits', async () => {
+    const annotation: ReaderAnnotation = { id: 'note-p1', resourceKey: 'imported:pdf-one', anchorKey: 'key', segments: [{ sectionId: 'page-1', sectionIndex: 0, blockId: 'p-1', startOffset: 0, endOffset: 4, exact: 'Page', prefix: '', suffix: '' }], quote: 'Page', color: 'lavender', note: 'Saved', createdAt: 1, updatedAt: 1 }
+    readerMock.annotations = [annotation]; mount()
+    await act(async () => { await Promise.resolve(); await Promise.resolve() })
+    readerMock.updateAnnotation.mockClear()
+    more(); act(() => { Array.from(container.querySelectorAll('button')).find((button) => button.textContent === 'Highlights & Notes')?.click() }); act(() => { Array.from(container.querySelectorAll('button')).find((button) => button.textContent === 'Edit')?.click() })
+    const textarea = container.querySelector('textarea') as HTMLTextAreaElement; expect(textarea.value).toBe('Saved'); act(() => { Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')?.set?.call(textarea, 'Uncommitted'); textarea.dispatchEvent(new Event('input', { bubbles: true })) })
+    await act(async () => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })) })
+    expect(container.querySelector('.reader-panel')).toBeNull(); expect(readerMock.updateAnnotation).not.toHaveBeenCalled(); expect(onBack).not.toHaveBeenCalled()
+    await act(async () => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })); await Promise.resolve() }); expect(onBack).toHaveBeenCalledTimes(1)
   })
 })

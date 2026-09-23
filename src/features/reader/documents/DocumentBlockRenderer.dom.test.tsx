@@ -3,6 +3,7 @@ import { act, type MouseEvent as ReactMouseEvent } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { DocumentBlock, DocumentInternalLink } from '../../../domain/documents'
+import type { ReaderAnnotation } from '../../../domain/annotation'
 import { DocumentBlockRenderer } from './DocumentBlockRenderer'
 
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
@@ -25,6 +26,21 @@ describe('DocumentBlockRenderer DOM interactions', () => {
 
   it('stops Enter propagation while leaving the native keyboard activation available', () => {
     const event = new KeyboardEvent('keydown', { bubbles: true, cancelable: true, key: 'Enter' }); act(() => { container.querySelector<HTMLAnchorElement>('a')?.dispatchEvent(event) }); expect(event.defaultPrevented).toBe(false); expect(outerClick).not.toHaveBeenCalled()
+  })
+
+  it('keeps an internal link activatable inside a highlight and opens highlighted text by keyboard', () => {
+    const annotation: ReaderAnnotation = { id: 'a', resourceKey: 'imported:book', anchorKey: 'key', segments: [{ sectionId: 'section-1', sectionIndex: 0, blockId: 'linked', blockOrder: 0, startOffset: 3, endOffset: 7, exact: 'Read', prefix: '😀 ', suffix: ' note twice' }], quote: 'Read', color: 'amber', createdAt: 1, updatedAt: 1 }
+    const plainAnnotation: ReaderAnnotation = { ...annotation, id: 'plain', segments: [{ ...annotation.segments[0], startOffset: 8, endOffset: 12, exact: 'note' }], quote: 'note' }
+    const onAnnotationClick = vi.fn()
+    act(() => root?.render(<DocumentBlockRenderer annotations={[annotation, plainAnnotation]} blocks={[block]} onAnnotationClick={onAnnotationClick} onInternalLink={onInternalLink} sectionId="section-1" />))
+    const mark = container.querySelector('mark')!; expect(mark.querySelector('a')?.textContent).toBe('Read')
+    const click = new MouseEvent('click', { bubbles: true, cancelable: true }); act(() => mark.querySelector('a')?.dispatchEvent(click)); expect(onInternalLink).toHaveBeenCalledTimes(1); expect(onAnnotationClick).not.toHaveBeenCalled()
+    const keyboardMark = container.querySelector<HTMLElement>('[data-annotation-id="plain"]')!; const keyboard = new KeyboardEvent('keydown', { bubbles: true, cancelable: true, key: 'Enter' }); act(() => keyboardMark.dispatchEvent(keyboard)); expect(keyboard.defaultPrevented).toBe(true); expect(onAnnotationClick).toHaveBeenCalledTimes(1)
+  })
+
+  it('ignores invalid and out-of-range annotation offsets', () => {
+    const annotation: ReaderAnnotation = { id: 'bad', resourceKey: 'imported:book', anchorKey: 'key', segments: [{ sectionId: 'section-1', sectionIndex: 0, blockId: 'linked', startOffset: 18, endOffset: 19, exact: 'x', prefix: '', suffix: '' }], quote: 'x', color: 'lavender', createdAt: 1, updatedAt: 1 }
+    act(() => root?.render(<DocumentBlockRenderer annotations={[annotation]} blocks={[block]} sectionId="section-1" />)); expect(container.querySelector('mark')).toBeNull(); expect(container.textContent).toBe(block.text)
   })
 
   it('renders malformed, overlapping, or missing-target ranges as plain text', () => {

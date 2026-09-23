@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { GlobalWorkerOptions, getDocument, type PDFDocumentProxy } from 'pdfjs-dist'
+import type { PDFDocumentProxy } from 'pdfjs-dist'
 import workerSrc from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
 
 export function usePdfDocument(source: Blob) {
@@ -17,6 +17,7 @@ export function usePdfDocument(source: Blob) {
     const destroyDocument = async (value: PDFDocumentProxy) => { if (!documentDestroyed) { documentDestroyed = true; try { await value.destroy() } catch { /* Cleanup must not create an unhandled rejection. */ } } }
     void (async () => {
       try {
+        const { GlobalWorkerOptions, getDocument } = await import('pdfjs-dist')
         GlobalWorkerOptions.workerSrc = workerSrc
         const task = getDocument({ data: new Uint8Array(await source.arrayBuffer()), disableAutoFetch: true, disableRange: true, isEvalSupported: false })
         loadingTask = task

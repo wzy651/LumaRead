@@ -20,7 +20,7 @@ describe('reader text anchors', () => {
   })
 
   it('supports continuous blocks and rejects collapsed, outside, and cross-section selections', () => {
-    document.body.innerHTML = '<article data-reader-section-id="chapter-1"><p data-reader-block-id="one">First</p><p data-reader-block-id="two">Second</p></article><aside>Outside</aside>'
+    document.body.innerHTML = '<article data-reader-section-id="chapter-1"><p data-reader-block-id="one">First</p><p data-reader-block-id="two">Second</p></article><article data-reader-section-id="chapter-2"><p data-reader-block-id="three">Another chapter.</p></article><aside>Outside</aside>'
     const first = document.querySelector('[data-reader-block-id="one"]')!.firstChild!
     const second = document.querySelector('[data-reader-block-id="two"]')!.firstChild!
     const crossBlock = selectionIn(first, 2, 5); const range = crossBlock.getRangeAt(0); range.setEnd(second, 3)
@@ -28,6 +28,14 @@ describe('reader text anchors', () => {
     expect('segments' in result && result.segments).toHaveLength(2)
     expect(createTextAnchorFromSelection(selectionIn(first, 2, 2), { sections })).toEqual({ reason: 'empty' })
     const outside = document.querySelector('aside')!.firstChild!; expect(createTextAnchorFromSelection(selectionIn(outside, 0, 5), { sections })).toEqual({ reason: 'outside-reader' })
+    const crossChapter = document.querySelector('[data-reader-block-id="three"]')!.firstChild!; const crossSelection = selectionIn(first, 0, 2); crossSelection.getRangeAt(0).setEnd(crossChapter, 3); expect(createTextAnchorFromSelection(crossSelection, { sections })).toEqual({ reason: 'cross-section' })
+  })
+
+  it('maps selections through span and mark wrappers without splitting emoji boundaries', () => {
+    document.body.innerHTML = '<article data-reader-section-id="chapter-1"><p data-reader-block-id="one"><span>😀 Fi</span><mark>rst block.</mark></p></article>'
+    const start = document.querySelector('span')!.firstChild!; const end = document.querySelector('mark')!.firstChild!; const selection = selectionIn(start, 3, 4); selection.getRangeAt(0).setEnd(end, 4)
+    const result = createTextAnchorFromSelection(selection, { sections })
+    expect('segments' in result && result.segments[0]).toMatchObject({ startOffset: 3, endOffset: 9, exact: 'First ' })
   })
 
   it('recovers changed offsets and marks ambiguous content orphaned', () => {
@@ -36,6 +44,8 @@ describe('reader text anchors', () => {
     expect(recovered.status).toBe('recovered'); expect(recovered.segments[0].startOffset).toBeGreaterThan(2)
     const orphaned = recoverAnnotation(annotation, [{ ...sections[0], blocks: [{ ...sections[0].blocks[0], text: 'First First' }] }])
     expect(orphaned.status).toBe('orphaned'); expect(orphaned.annotation.orphaned).toBe(true)
+    const moved = recoverAnnotation(annotation, [{ ...sections[0], blocks: [{ id: 'replacement', type: 'paragraph', text: 'prefix 😀 First block.', order: 4 }, sections[0].blocks[1]] }])
+    expect(moved.status).toBe('recovered'); expect(moved.segments[0]).toMatchObject({ blockId: 'replacement', blockOrder: 4 })
     act(() => window.getSelection()?.removeAllRanges())
   })
 })

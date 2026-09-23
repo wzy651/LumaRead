@@ -32,4 +32,15 @@ describe('DocumentBlockRenderer', () => {
     const block: DocumentBlock = { id: 'unsafe', type: 'paragraph', text: 'One two', order: 0, links: [{ id: 'a', start: 0, end: 4, role: 'link', target: { sectionId: 's' } }, { id: 'b', start: 3, end: 7, role: 'link', target: { sectionId: 's' } }] }
     expect(renderToStaticMarkup(<DocumentBlockRenderer blocks={[block]} />)).toBe('<p data-reader-block-id="unsafe">One two</p>')
   })
+
+  it('isolates annotations by section when chapters and PDF pages reuse block-0', () => {
+    const annotation = { id: 'chapter-note', resourceKey: 'imported:book', anchorKey: 'canonical', segments: [{ sectionId: 'chapter-1', sectionIndex: 0, blockId: 'block-0', startOffset: 0, endOffset: 5, exact: 'First', prefix: '', suffix: '' }], quote: 'First', color: 'lavender' as const, createdAt: 1, updatedAt: 1 }
+    const chapterMarkup = renderToStaticMarkup(<><article data-reader-section-id="chapter-1"><DocumentBlockRenderer annotations={[annotation]} blocks={[{ id: 'block-0', type: 'paragraph', text: 'First text', order: 0 }]} sectionId="chapter-1" /></article><article data-reader-section-id="chapter-2"><DocumentBlockRenderer annotations={[annotation]} blocks={[{ id: 'block-0', type: 'paragraph', text: 'Other text', order: 0 }]} sectionId="chapter-2" /></article></>)
+    expect(chapterMarkup.match(/data-annotation-id="chapter-note"/g)).toHaveLength(1)
+    expect(chapterMarkup).toContain('<p data-reader-block-id="block-0">Other text</p>')
+    const pageAnnotation = { ...annotation, id: 'page-note', segments: [{ ...annotation.segments[0], sectionId: 'page-1' }] }
+    const pageMarkup = renderToStaticMarkup(<><article data-reader-section-id="page-1"><DocumentBlockRenderer annotations={[pageAnnotation]} blocks={[{ id: 'block-0', type: 'paragraph', text: 'Page one', order: 0 }]} sectionId="page-1" /></article><article data-reader-section-id="page-2"><DocumentBlockRenderer annotations={[pageAnnotation]} blocks={[{ id: 'block-0', type: 'paragraph', text: 'Page two', order: 0 }]} sectionId="page-2" /></article></>)
+    expect(pageMarkup.match(/data-annotation-id="page-note"/g)).toHaveLength(1)
+    expect(pageMarkup).toContain('<p data-reader-block-id="block-0">Page two</p>')
+  })
 })

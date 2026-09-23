@@ -20,6 +20,47 @@ function blockElements(root: ParentNode = document, sectionId?: string) {
   return Array.from(sectionRoot(root, sectionId).querySelectorAll<HTMLElement>('[data-reader-block-id]'))
 }
 
+function textOffsetOnPage(element: HTMLElement, pageContainer: HTMLElement) {
+  if (typeof document.createRange().getBoundingClientRect !== 'function') return undefined
+  const style = getComputedStyle(pageContainer)
+  const stride = (Number.parseFloat(style.columnWidth) || pageContainer.clientWidth) + (Number.parseFloat(style.columnGap) || 0)
+  const padding = Number.parseFloat(style.paddingLeft) || 0
+  if (stride <= 0) return undefined
+  const page = Math.max(0, Math.floor((pageContainer.scrollLeft + padding) / stride))
+  const containerLeft = pageContainer.getBoundingClientRect().left
+  const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT)
+  let total = 0
+  let current = walker.nextNode()
+  while (current) {
+    const nodeLength = current.textContent?.length ?? 0
+    if (nodeLength > 0) {
+      const range = document.createRange()
+      const columnAt = (offset: number) => {
+        range.setStart(current!, offset)
+        range.setEnd(current!, Math.min(nodeLength, offset + 1))
+        const rect = range.getBoundingClientRect()
+        if (!rect || !Number.isFinite(rect.left)) return undefined
+        return Math.floor((rect.left - containerLeft + pageContainer.scrollLeft - padding) / stride)
+      }
+      const lastColumn = columnAt(nodeLength - 1)
+      if (lastColumn !== undefined && lastColumn >= page) {
+        let low = 0
+        let high = nodeLength - 1
+        while (low < high) {
+          const middle = Math.floor((low + high) / 2)
+          const column = columnAt(middle)
+          if (column === undefined || column >= page) high = middle
+          else low = middle + 1
+        }
+        return total + low
+      }
+      total += nodeLength
+    }
+    current = walker.nextNode()
+  }
+  return undefined
+}
+
 export function createLocatorFromCurrentPosition(context: LocatorNavigationContext): ReaderLocator {
   const section = context.sections[Math.min(Math.max(context.sectionIndex, 0), Math.max(context.sections.length - 1, 0))]
   const elements = blockElements(context.root, section?.id)
@@ -30,7 +71,8 @@ export function createLocatorFromCurrentPosition(context: LocatorNavigationConte
   const maximum = typeof document === 'undefined' || typeof window === 'undefined' ? 1 : Math.max(1, document.documentElement.scrollHeight - window.innerHeight)
   const progression = typeof window === 'undefined' ? 0 : Math.min(1, Math.max(0, window.scrollY / maximum))
   let textOffset: number | undefined
-  if (element) {
+  if (element && pageContainer) textOffset = textOffsetOnPage(element, pageContainer)
+  else if (element) {
     const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT)
     let offset = 0
     let node = walker.nextNode()

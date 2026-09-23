@@ -11,6 +11,12 @@ export function pageIndexFromScroll(scrollLeft: number, stride: number, pageCoun
   return Math.min(Math.max(0, Math.round(scrollLeft / stride)), Math.max(0, pageCount - 1))
 }
 
+export function pageIndexFromProgress(progressPercent: number, pageCount: number) {
+  if (!Number.isFinite(progressPercent) || pageCount <= 1) return 0
+  const progress = Math.min(100, Math.max(0, progressPercent))
+  return Math.round(progress / 100 * (pageCount - 1))
+}
+
 export function pageTurnTarget(pageIndex: number, pageCount: number, sectionIndex: number, sectionCount: number, delta: -1 | 1) {
   const nextPage = pageIndex + delta
   if (nextPage >= 0 && nextPage < pageCount) return { pageIndex: nextPage, sectionIndex, boundary: undefined }

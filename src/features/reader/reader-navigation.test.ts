@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from 'vitest'
-import { createNavigationHistory, navigateToLocator, ReaderNavigationHistory } from './reader-navigation'
+import { createLocatorFromCurrentPosition, createNavigationHistory, navigateToLocator, ReaderNavigationHistory } from './reader-navigation'
 
 const first = { version: 1 as const, kind: 'pdf' as const, resourceKey: 'imported:book', pageNumber: 1 }
 const second = { ...first, pageNumber: 2 }
@@ -48,5 +48,20 @@ describe('reader navigation history', () => {
     const locator = { version: 1 as const, kind: 'reflowable' as const, resourceKey: 'imported:book', sectionId: 'chapter', sectionIndex: 0, blockId: 'paragraph', textOffset: 12 }
     expect(navigateToLocator(locator, { resourceKey: 'imported:book', sections, sectionIndex: 0, root: container, pageContainer: container })).toBe(true)
     expect(container.scrollTo).toHaveBeenCalledWith({ left: 440, behavior: 'auto' })
+  })
+
+  it('finds the current offset in a long paragraph with logarithmic range measurements', () => {
+    const text = 'x'.repeat(100_000)
+    const sections = [{ id: 'chapter', blocks: [{ id: 'long', type: 'paragraph' as const, text, order: 0 }] }]
+    const container = document.createElement('article'); const block = document.createElement('p'); block.dataset.readerBlockId = 'long'; block.textContent = text; container.append(block); container.style.columnWidth = '200px'; container.style.columnGap = '0px'; Object.defineProperty(container, 'clientWidth', { value: 400 }); Object.defineProperty(container, 'scrollLeft', { value: 50_000, writable: true }); container.getBoundingClientRect = () => ({ left: 0, right: 400, top: 0, bottom: 600, width: 400, height: 600, x: 0, y: 0, toJSON: () => ({}) }) as DOMRect
+    const original = Object.getOwnPropertyDescriptor(Range.prototype, 'getBoundingClientRect'); let measured = 0
+    Object.defineProperty(Range.prototype, 'getBoundingClientRect', { configurable: true, value: function (this: Range) { measured += 1; const left = this.startOffset - container.scrollLeft; return { left, right: left + 1, top: 20, bottom: 36, width: 1, height: 16, x: left, y: 20, toJSON: () => ({}) } } })
+    try {
+      const startedAt = performance.now()
+      const locator = createLocatorFromCurrentPosition({ resourceKey: 'imported:book', sections, sectionIndex: 0, root: container, pageContainer: container })
+      console.info(`100,000-character locator: ${(performance.now() - startedAt).toFixed(2)} ms; ${measured} Range measurements`)
+      expect(locator).toMatchObject({ kind: 'reflowable', blockId: 'long', textOffset: 50_000 })
+      expect(measured).toBeLessThan(30)
+    } finally { if (original) Object.defineProperty(Range.prototype, 'getBoundingClientRect', original); else delete (Range.prototype as Partial<Range>).getBoundingClientRect }
   })
 })

@@ -1,6 +1,7 @@
+// @vitest-environment jsdom
 import { describe, expect, it } from 'vitest'
-import { pageCountFromMetrics, pageTurnTarget } from './pagination'
-import { isReaderSwipe, readerSwipeBehavior } from './swipeNavigation'
+import { pageCountFromMetrics, pageIndexFromProgress, pageTurnTarget } from './pagination'
+import { isReaderSwipe, isSwipeBlockedTarget, readerSwipeBehavior } from './swipeNavigation'
 
 describe('pagination and swipe decisions', () => {
   it('counts empty and short sections as one quiet page', () => {
@@ -13,6 +14,13 @@ describe('pagination and swipe decisions', () => {
     expect(pageCountFromMetrics(751, 751, 664, 152, 64)).toBe(1)
     expect(pageCountFromMetrics(1416, 751, 664, 152, 64)).toBe(2)
     expect(pageCountFromMetrics(342, 342, 310, 0, 28)).toBe(1)
+  })
+  it('restores older progress-only locations after the page count is measured', () => {
+    expect(pageIndexFromProgress(50, 4)).toBe(2)
+    expect(pageIndexFromProgress(-20, 4)).toBe(0)
+    expect(pageIndexFromProgress(150, 4)).toBe(3)
+    expect(pageIndexFromProgress(50, 1)).toBe(0)
+    expect(pageIndexFromProgress(Number.NaN, 4)).toBe(0)
   })
   it('moves through pages and adjacent chapter edges without wrapping', () => {
     expect(pageTurnTarget(0, 4, 1, 3, -1)).toMatchObject({ sectionIndex: 0, boundary: 'last' })
@@ -27,6 +35,10 @@ describe('pagination and swipe decisions', () => {
     expect(isReaderSwipe({ x: 200, y: 300, pointerCount: 2 }, { x: 100, y: 300 })).toBe(false)
     expect(isReaderSwipe({ x: 200, y: 300, startedAtEdge: true }, { x: 100, y: 300 })).toBe(false)
     expect(isReaderSwipe({ x: 200, y: 300 }, { x: 100, y: 300 }, 'selected')).toBe(false)
+  })
+  it('blocks gestures that start from links, controls, sheets, editors, and PDF text layers', () => {
+    const targets = ['a', 'button', 'input', 'textarea', 'select', '[contenteditable="true"]', '.reader-panel', '.reader-bottom-sheet', '.reader-footnote', '.pdf-text-layer', '.textLayer', '.annotation-editor', '.selection-toolbar'].map((selector) => { const element = document.createElement(selector.startsWith('.') ? 'div' : selector.startsWith('[') ? 'div' : selector); if (selector.startsWith('.')) element.className = selector.slice(1); if (selector.startsWith('[')) element.setAttribute('contenteditable', 'true'); document.body.append(element); return element })
+    try { for (const target of targets) expect(isSwipeBlockedTarget(target)).toBe(true); expect(isSwipeBlockedTarget(document.createElement('article'))).toBe(false) } finally { document.body.replaceChildren() }
   })
   it('selects the intended swipe action for each reader format and mode', () => {
     expect(readerSwipeBehavior('epub', 'pages', 3)).toBe('page')

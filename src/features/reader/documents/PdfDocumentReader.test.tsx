@@ -59,6 +59,18 @@ describe('PdfDocumentReader', () => {
     expect(container.textContent).toContain('PDF page 3'); expect(next.disabled).toBe(true); expect((container.querySelector('[aria-label="Previous PDF page"]') as HTMLButtonElement).disabled).toBe(false)
   })
 
+  it('turns Original Layout once for a swipe, clears canceled gestures, and ignores Reading View swipes', () => {
+    mount(); const surface = container.querySelector('.pdf-reader')!
+    const pointer = (type: string, x: number, y: number) => { const event = new Event(type, { bubbles: true }); Object.defineProperties(event, { pointerType: { value: 'touch' }, clientX: { value: x }, clientY: { value: y }, isPrimary: { value: true } }); return event }
+    act(() => { surface.dispatchEvent(pointer('pointerdown', 240, 160)); surface.dispatchEvent(pointer('pointerup', 140, 166)); surface.dispatchEvent(pointer('pointerup', 140, 166)) })
+    expect(container.textContent).toContain('PDF page 2')
+    act(() => { surface.dispatchEvent(pointer('pointerdown', 240, 160)); surface.dispatchEvent(pointer('pointercancel', 240, 160)); surface.dispatchEvent(pointer('pointerup', 140, 166)); (container.querySelector('.textLayer') as HTMLElement).dispatchEvent(pointer('pointerdown', 240, 160)); surface.dispatchEvent(pointer('pointerup', 140, 166)) })
+    expect(container.textContent).toContain('PDF page 2')
+    more(); act(() => { Array.from(container.querySelectorAll('button')).find((button) => button.textContent?.includes('Reading view'))?.click() })
+    act(() => { surface.dispatchEvent(pointer('pointerdown', 240, 160)); surface.dispatchEvent(pointer('pointerup', 140, 166)) })
+    expect(container.querySelector('[data-reader-section-id="page-2"]')).not.toBeNull()
+  })
+
   it('does not navigate when keyboard input starts in selectable PDF text', () => {
     mount(); const layer = container.querySelector('.textLayer') as HTMLElement
     act(() => layer.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'ArrowRight' })))

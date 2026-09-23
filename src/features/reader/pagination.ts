@@ -6,6 +6,11 @@ export function pageCountFromMetrics(scrollWidth: number, clientWidth: number, s
   return Math.max(1, Math.ceil(scrollWidth / clientWidth))
 }
 
+export function pageColumnWidth(clientWidth: number, columnGap: number) {
+  if (!Number.isFinite(clientWidth) || !Number.isFinite(columnGap)) return 1
+  return Math.max(1, clientWidth - Math.max(0, columnGap))
+}
+
 export function pageIndexFromScroll(scrollLeft: number, stride: number, pageCount: number) {
   if (stride <= 0) return 0
   return Math.min(Math.max(0, Math.round(scrollLeft / stride)), Math.max(0, pageCount - 1))

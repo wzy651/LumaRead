@@ -1,14 +1,41 @@
 import { DocumentError, type DocumentBlock, type DocumentCapabilities, type StoredDocument } from '../domain/documents'
 
 export const databaseName = 'lumaread-documents'
-export const databaseVersion = 6
+export const databaseVersion = 7
 export const currentContentSchemaVersion = 2
 export const legacyContentSchemaVersion = 1
 export const defaultDocumentCapabilities: DocumentCapabilities = { reflowable: true, supportsOriginalLayout: false, supportsTextSelection: true, supportsSearch: false, supportsTableOfContents: false, supportsPagination: false, supportsReadAloud: false, supportsInternalLinks: false }
 type LegacyRecord = Omit<StoredDocument, 'capabilities' | 'sections'> & { sections: Array<{ id: string; title?: string; order: number; content?: string[]; blocks?: DocumentBlock[] }>; capabilities?: Partial<DocumentCapabilities> }
-export function upgradeLegacyRecord(record: LegacyRecord): StoredDocument { const old = record.capabilities ?? {}; const contentSchemaVersion = record.contentSchemaVersion ?? legacyContentSchemaVersion; return { ...record, contentSchemaVersion, capabilities: { ...defaultDocumentCapabilities, ...old, supportsOriginalLayout: record.document.format === 'pdf', supportsInternalLinks: contentSchemaVersion === currentContentSchemaVersion && old.supportsInternalLinks === true }, sections: record.sections.map((section) => ({ id: section.id, title: section.title, order: section.order, blocks: section.blocks ?? (section.content ?? []).map((text, order) => ({ id: `paragraph-${order}`, type: 'paragraph' as const, text, order })) })) } }
+
+export function upgradeLegacyRecord(record: LegacyRecord): StoredDocument {
+  const old = record.capabilities ?? {}
+  const contentSchemaVersion = record.contentSchemaVersion ?? legacyContentSchemaVersion
+  return { ...record, contentSchemaVersion, capabilities: { ...defaultDocumentCapabilities, ...old, supportsOriginalLayout: record.document.format === 'pdf', supportsInternalLinks: contentSchemaVersion === currentContentSchemaVersion && old.supportsInternalLinks === true }, sections: record.sections.map((section) => ({ id: section.id, title: section.title, order: section.order, blocks: section.blocks ?? (section.content ?? []).map((text, order) => ({ id: `paragraph-${order}`, type: 'paragraph' as const, text, order })) })) }
+}
+
 export function storageError(message = 'LumaRead could not save local reading data.') { return new DocumentError('storage-failed', message) }
-function ensureIndex(store: IDBObjectStore, name: string, keyPath: string, options?: IDBIndexParameters) { if (!store.indexNames.contains(name)) store.createIndex(name, keyPath, options) }
-export function openDatabase(): Promise<IDBDatabase> { return new Promise((resolve, reject) => { if (typeof window === 'undefined' || !('indexedDB' in window)) { reject(storageError('Local document storage is not available in this environment.')); return }; const request = indexedDB.open(databaseName, databaseVersion); request.onupgradeneeded = (event) => { const db = request.result; const transaction = request.transaction!; let documents: IDBObjectStore; if (!db.objectStoreNames.contains('documents')) { documents = db.createObjectStore('documents', { keyPath: 'document.id' }); documents.createIndex('fingerprint', 'document.fingerprint', { unique: true }) } else { documents = transaction.objectStore('documents'); ensureIndex(documents, 'fingerprint', 'document.fingerprint', { unique: true }) }; if (event.oldVersion < databaseVersion) documents.openCursor().onsuccess = (cursorEvent) => { const cursor = (cursorEvent.target as IDBRequest<IDBCursorWithValue | null>).result; if (!cursor) return; cursor.update(upgradeLegacyRecord(cursor.value as LegacyRecord)); cursor.continue() }; if (!db.objectStoreNames.contains('locations')) db.createObjectStore('locations', { keyPath: 'documentId' }); if (!db.objectStoreNames.contains('readingActivity')) { const store = db.createObjectStore('readingActivity', { keyPath: 'key' }); store.createIndex('lastOpenedAt', 'lastOpenedAt'); store.createIndex('lastReadAt', 'lastReadAt') }; const bookmarks = db.objectStoreNames.contains('bookmarks') ? transaction.objectStore('bookmarks') : db.createObjectStore('bookmarks', { keyPath: 'id' }); ensureIndex(bookmarks, 'resourceKey', 'resourceKey'); ensureIndex(bookmarks, 'createdAt', 'createdAt'); ensureIndex(bookmarks, 'updatedAt', 'updatedAt'); ensureIndex(bookmarks, 'anchorKey', 'anchorKey', { unique: true }) }; request.onsuccess = () => resolve(request.result); request.onerror = () => reject(storageError('LumaRead could not open local document storage.')); request.onblocked = () => reject(storageError('Local document storage is currently busy.')) }) }
+function ensureIndex(store: IDBObjectStore, name: string, keyPath: string | string[], options?: IDBIndexParameters) { if (!store.indexNames.contains(name)) store.createIndex(name, keyPath, options) }
+
+export function openDatabase(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    if (typeof window === 'undefined' || !('indexedDB' in window)) { reject(storageError('Local document storage is not available in this environment.')); return }
+    const request = indexedDB.open(databaseName, databaseVersion)
+    request.onupgradeneeded = (event) => {
+      const db = request.result; const transaction = request.transaction!
+      let documents: IDBObjectStore
+      if (!db.objectStoreNames.contains('documents')) { documents = db.createObjectStore('documents', { keyPath: 'document.id' }); documents.createIndex('fingerprint', 'document.fingerprint', { unique: true }) } else { documents = transaction.objectStore('documents'); ensureIndex(documents, 'fingerprint', 'document.fingerprint', { unique: true }) }
+      if (event.oldVersion < databaseVersion) documents.openCursor().onsuccess = (cursorEvent) => { const cursor = (cursorEvent.target as IDBRequest<IDBCursorWithValue | null>).result; if (!cursor) return; cursor.update(upgradeLegacyRecord(cursor.value as LegacyRecord)); cursor.continue() }
+      if (!db.objectStoreNames.contains('locations')) db.createObjectStore('locations', { keyPath: 'documentId' })
+      if (!db.objectStoreNames.contains('readingActivity')) { const store = db.createObjectStore('readingActivity', { keyPath: 'key' }); store.createIndex('lastOpenedAt', 'lastOpenedAt'); store.createIndex('lastReadAt', 'lastReadAt') }
+      const bookmarks = db.objectStoreNames.contains('bookmarks') ? transaction.objectStore('bookmarks') : db.createObjectStore('bookmarks', { keyPath: 'id' })
+      ensureIndex(bookmarks, 'resourceKey', 'resourceKey'); ensureIndex(bookmarks, 'createdAt', 'createdAt'); ensureIndex(bookmarks, 'updatedAt', 'updatedAt'); ensureIndex(bookmarks, 'anchorKey', 'anchorKey', { unique: true })
+      if (!db.objectStoreNames.contains('annotations')) { const store = db.createObjectStore('annotations', { keyPath: 'id' }); store.createIndex('resourceKey', 'resourceKey'); store.createIndex('createdAt', 'createdAt'); store.createIndex('updatedAt', 'updatedAt'); store.createIndex('anchorKey', 'anchorKey'); store.createIndex('resourceAnchor', ['resourceKey', 'anchorKey'], { unique: true }) } else { const store = transaction.objectStore('annotations'); ensureIndex(store, 'resourceKey', 'resourceKey'); ensureIndex(store, 'createdAt', 'createdAt'); ensureIndex(store, 'updatedAt', 'updatedAt'); ensureIndex(store, 'anchorKey', 'anchorKey'); ensureIndex(store, 'resourceAnchor', ['resourceKey', 'anchorKey'], { unique: true }) }
+    }
+    request.onsuccess = () => resolve(request.result)
+    request.onerror = () => reject(storageError('LumaRead could not open local document storage.'))
+    request.onblocked = () => reject(storageError('Local document storage is currently busy.'))
+  })
+}
+
 export function requestResult<T>(request: IDBRequest<T>): Promise<T> { return new Promise((resolve, reject) => { request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error?.name === 'ConstraintError' ? new DocumentError('duplicate-document', 'This document is already in your library.') : storageError()) }) }
 export function transactionComplete(transaction: IDBTransaction): Promise<void> { return new Promise((resolve, reject) => { transaction.oncomplete = () => resolve(); transaction.onerror = transaction.onabort = () => reject(transaction.error?.name === 'ConstraintError' ? new DocumentError('duplicate-document', 'This document is already in your library.') : storageError()) }) }

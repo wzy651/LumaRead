@@ -34,11 +34,11 @@ describe('bookmark repositories', () => {
     expect(await repository.listForResource('imported:other')).toHaveLength(1)
   })
 
-  it('waits for IndexedDB writes and preserves v5 data while adding the v6 store', async () => {
+  it('waits for IndexedDB writes and preserves v5 data while adding the v7 store', async () => {
     const factory = new IDBFactory(); Object.assign(globalThis, { indexedDB: factory, window: globalThis }); database = await openV4(factory)
     const transaction = database.transaction('locations', 'readwrite'); transaction.objectStore('locations').put({ documentId: 'book', sectionId: 'section-1', sectionIndex: 0, progressPercent: 5, updatedAt: '2026-01-01T00:00:00.000Z' }); await new Promise<void>((resolve, reject) => { transaction.oncomplete = () => resolve(); transaction.onerror = () => reject(transaction.error) }); database.close(); database = undefined
     const repository = new IndexedDbBookmarkRepository(); const [saved, duplicate] = await Promise.all([repository.add(input), repository.add({ ...input, id: 'concurrent-duplicate' })]); expect(saved.anchorKey).toContain('block-1'); expect(duplicate.anchorKey).toBe(saved.anchorKey); await expect(repository.findByAnchor(locator.resourceKey, saved.anchorKey)).resolves.toEqual(saved)
-    const upgraded = await openDatabase(); database = upgraded; expect(upgraded.version).toBe(6); expect(upgraded.objectStoreNames.contains('bookmarks')).toBe(true); expect(await requestResult(upgraded.transaction('locations').objectStore('locations').get('book'))).toMatchObject({ documentId: 'book' })
+    const upgraded = await openDatabase(); database = upgraded; expect(upgraded.version).toBe(7); expect(upgraded.objectStoreNames.contains('bookmarks')).toBe(true); expect(upgraded.objectStoreNames.contains('annotations')).toBe(true); expect(await requestResult(upgraded.transaction('locations').objectStore('locations').get('book'))).toMatchObject({ documentId: 'book' })
     await repository.toggleAtLocator(input); await expect(repository.listForResource(locator.resourceKey)).resolves.toHaveLength(0)
   })
 

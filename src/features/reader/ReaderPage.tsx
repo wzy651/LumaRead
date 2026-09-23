@@ -3,7 +3,7 @@ import { BookOpen, Sparkles } from 'lucide-react'
 import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { MEDIA_QUERIES, useMediaQuery } from '../../app/responsive'
 import { books, currentBook, lookupEvents, vocabularyItems } from '../../mocks'
-import { normalizeReaderLocator, readerLocatorAnchorKey, type Bookmark, type DocumentSection, type VocabularyItem } from '../../domain'
+import { findAnnotationOverlap, normalizeReaderLocator, readerLocatorAnchorKey, type AnnotationColor, type Bookmark, type DocumentSection, type ReaderAnnotation, type TextAnchorSegment, type VocabularyItem } from '../../domain'
 import { AdaptivePanel } from './components/AdaptivePanel'
 import { DictionaryContent } from './components/DictionaryContent'
 import { InteractiveSentence } from './components/InteractiveSentence'
@@ -23,9 +23,14 @@ import { createLocatorFromCurrentPosition, navigateToLocator } from './reader-na
 import { ReaderBookmarksPanel } from './components/ReaderBookmarksPanel'
 import { ReaderSearchPanel, type ReaderSearchPanelHandle } from './components/ReaderSearchPanel'
 import { getBookmarkRepository, getReadingActivityRepository } from '../../storage'
+import * as storage from '../../storage'
 import { createNavigationHistory } from './reader-navigation'
 import { useReaderSearchShortcut } from './useReaderSearchShortcut'
 import './reader.css'
+import { createTextAnchorFromSelection } from './annotation-anchor'
+import { SelectionToolbar } from './components/SelectionToolbar'
+import { AnnotationEditor } from './components/AnnotationEditor'
+import { HighlightsNotesPanel } from './components/HighlightsNotesPanel'
 
 type ActivePanel =
   | { anchor: HTMLElement; kind: 'dictionary'; vocabularyId: string }
@@ -39,6 +44,8 @@ function ReaderWord({ displayText, item, learnedReminder, onOpen }: { displayTex
   return <button className={'reader-word' + (learnedReminder ? ' reader-word--reminder' : '')} onClick={(event: MouseEvent<HTMLButtonElement>) => onOpen(item, event.currentTarget)} type="button">{displayText}</button>
 }
 
+function mockAnnotationRepository() { try { const candidate = storage.getAnnotationRepository; return typeof candidate === 'function' ? candidate() : undefined } catch { return undefined } }
+
 export function ReaderPage() {
   const { bookId } = useParams()
   const navigate = useNavigate()
@@ -46,10 +53,15 @@ export function ReaderPage() {
   const [activePanel, setActivePanel] = useState<ActivePanel | null>(null)
   const { settings, setSettings } = useReaderSettings()
   const [bookmarksAnchor, setBookmarksAnchor] = useState<HTMLButtonElement>()
+  const [annotationsAnchor, setAnnotationsAnchor] = useState<HTMLButtonElement>()
+  const [annotations, setAnnotations] = useState<ReaderAnnotation[]>([])
+  const [selectionAnchor, setSelectionAnchor] = useState<{ segments: TextAnchorSegment[]; quote: string; anchorKey: string }>()
+  const [selectionPosition, setSelectionPosition] = useState<{ top: number; left: number }>()
+  const [editor, setEditor] = useState<{ anchor: HTMLElement; annotation?: ReaderAnnotation; pending?: { segments: TextAnchorSegment[]; quote: string; anchorKey: string }; color: AnnotationColor }>()
   const [searchAnchor, setSearchAnchor] = useState<HTMLButtonElement>()
   const [hasSearchHistory, setHasSearchHistory] = useState(false)
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([])
-  const { chromeRef, hide, reveal, visible } = useReaderChromeVisibility({ isMobile, overlayOpen: activePanel !== null || Boolean(bookmarksAnchor || searchAnchor) })
+  const { chromeRef, hide, reveal, visible } = useReaderChromeVisibility({ isMobile, overlayOpen: activePanel !== null || Boolean(bookmarksAnchor || searchAnchor || annotationsAnchor || editor || selectionAnchor) })
   const [lookupCounts, setLookupCounts] = useState<Record<string, number>>(() => Object.fromEntries(vocabularyItems.map((item) => [item.id, lookupEvents.filter((event) => event.vocabularyId === item.id).length])))
   const [acknowledgedIds, setAcknowledgedIds] = useState<Set<string>>(() => new Set())
   const [learningIds, setLearningIds] = useState<Set<string>>(() => new Set(vocabularyItems.filter((item) => item.addedToLearning).map((item) => item.id)))
@@ -70,7 +82,8 @@ export function ReaderPage() {
   const flushLocation = useCallback(() => { window.clearTimeout(activityTimer.current); return saveLocation() }, [saveLocation])
   useEffect(() => { if (bookId !== readerChapter.bookId) return; void getReadingActivityRepository().recordOpen('builtin', readerChapter.bookId).catch(() => undefined); const onScroll = () => { window.clearTimeout(activityTimer.current); activityTimer.current = window.setTimeout(() => { void saveLocation() }, 650) }; window.addEventListener('scroll', onScroll, { passive: true }); return () => { window.removeEventListener('scroll', onScroll); window.clearTimeout(activityTimer.current); void saveLocation() } }, [bookId, saveLocation])
   useEffect(() => { if (bookId !== readerChapter.bookId) return; void getBookmarkRepository().listForResource(resourceKey).then(setBookmarks).catch(() => setBookmarks([])) }, [bookId, resourceKey])
-  useReaderExit({ closeOverlay: () => { if (searchAnchor) setSearchAnchor(undefined); else if (bookmarksAnchor) setBookmarksAnchor(undefined); else setActivePanel(null) }, flushLocation, navigateHome: () => navigate('/', { replace: true }), overlayOpen: activePanel !== null || Boolean(bookmarksAnchor || searchAnchor) })
+  useEffect(() => { if (bookId !== readerChapter.bookId) return; const repository = mockAnnotationRepository(); if (repository) void repository.listForResource(resourceKey).then(setAnnotations).catch(() => setAnnotations([])) }, [bookId, resourceKey])
+  useReaderExit({ closeOverlay: () => { if (editor) setEditor(undefined); else if (selectionAnchor) { setSelectionAnchor(undefined); setSelectionPosition(undefined) } else if (searchAnchor) setSearchAnchor(undefined); else if (bookmarksAnchor) setBookmarksAnchor(undefined); else if (annotationsAnchor) setAnnotationsAnchor(undefined); else setActivePanel(null) }, flushLocation, navigateHome: () => navigate('/', { replace: true }), overlayOpen: activePanel !== null || Boolean(bookmarksAnchor || searchAnchor || annotationsAnchor || editor || selectionAnchor) })
 
   useReaderSearchShortcut({ enabled: bookId === readerChapter.bookId, open: () => { const anchor = document.querySelector<HTMLButtonElement>('[aria-label="Search in current book"]'); if (anchor) openSearch(anchor) }, focus: () => searchPanelRef.current?.focusAndSelect(), openAlready: Boolean(searchAnchor) })
   if (bookId && !books.some((book) => book.id === bookId)) return <ImportedDocumentReader documentId={bookId} />
@@ -79,15 +92,21 @@ export function ReaderPage() {
   function exitReader() { if (window.history.length > 1) navigate(-1); else navigate('/') }
   function openDictionary(item: VocabularyItem, anchor: HTMLElement) { setLookupCounts((current) => ({ ...current, [item.id]: (current[item.id] ?? 0) + 1 })); setMoreVisible(false); setBookmarksAnchor(undefined); setSearchAnchor(undefined); setActivePanel({ anchor, kind: 'dictionary', vocabularyId: item.id }) }
   function openSentence(aidId: string, anchor: HTMLElement) { setBookmarksAnchor(undefined); setSearchAnchor(undefined); setActivePanel({ aidId, anchor, kind: 'sentence' }) }
-  function openChromePanel(kind: 'settings' | 'more', anchor: HTMLButtonElement) { setBookmarksAnchor(undefined); setSearchAnchor(undefined); setActivePanel({ anchor, kind }) }
+  function openChromePanel(kind: 'settings' | 'more', anchor: HTMLButtonElement) { setBookmarksAnchor(undefined); setSearchAnchor(undefined); setAnnotationsAnchor(undefined); setActivePanel({ anchor, kind }) }
   function currentLocator() { return createLocatorFromCurrentPosition({ resourceKey, sections: mockSections, sectionIndex: 0 }) }
   function currentBookmark() { const locator = currentLocator(); if (!locator) return undefined; const anchorKey = readerLocatorAnchorKey(locator); return bookmarks.find((bookmark) => { const normalized = normalizeReaderLocator(bookmark.locator); return normalized ? readerLocatorAnchorKey(normalized) === anchorKey : false }) }
   async function toggleBookmark() { const locator = currentLocator(); const blockId = locator.kind === 'reflowable' ? locator.blockId : undefined; try { await getBookmarkRepository().toggleAtLocator({ resourceKey, locator, label: readerChapter.chapterLabel, excerpt: mockSections[0].blocks.find((block) => block.id === blockId)?.text.slice(0, 140) }); setBookmarks(await getBookmarkRepository().listForResource(resourceKey)) } catch { /* Local storage is optional; Reader remains usable. */ } }
-  function openBookmarks(anchor: HTMLButtonElement) { setActivePanel(null); setSearchAnchor(undefined); setBookmarksAnchor(anchor) }
-  function openSearch(anchor: HTMLButtonElement) { setActivePanel(null); setBookmarksAnchor(undefined); setSearchAnchor(anchor) }
+  function openBookmarks(anchor: HTMLButtonElement) { setActivePanel(null); setSearchAnchor(undefined); setAnnotationsAnchor(undefined); setBookmarksAnchor(anchor) }
+  function openSearch(anchor: HTMLButtonElement) { setActivePanel(null); setBookmarksAnchor(undefined); setAnnotationsAnchor(undefined); setSearchAnchor(anchor) }
+  function openAnnotations(anchor: HTMLButtonElement) { setActivePanel(null); setBookmarksAnchor(undefined); setSearchAnchor(undefined); setAnnotationsAnchor(anchor) }
   function openBookmark(bookmark: Bookmark) { setBookmarksAnchor(undefined); navigateToLocator(bookmark.locator, { resourceKey, sections: mockSections, sectionIndex: 0 }) }
   function openSearchResult(result: import('./reader-search').ReaderSearchResult) { navigationHistory.current.push(currentLocator()); setHasSearchHistory(true); void saveLocation(); setSearchAnchor(undefined); navigateToLocator(result.locator, { resourceKey, sections: mockSections, sectionIndex: 0, root: articleRef.current ?? undefined }) }
   function backFromSearch() { const previous = navigationHistory.current.back(); if (previous) { setHasSearchHistory(navigationHistory.current.canGoBack()); navigateToLocator(previous, { resourceKey, sections: mockSections, sectionIndex: 0, root: articleRef.current ?? undefined }) } else { setHasSearchHistory(false); exitReader() } }
+  function captureSelection() { const result = createTextAnchorFromSelection(window.getSelection(), { sections: mockSections, root: articleRef.current ?? undefined }); if ('reason' in result) return; const range = window.getSelection()?.getRangeAt(0); if (!range) return; const rect = range.getBoundingClientRect(); setSelectionAnchor(result); setSelectionPosition({ top: isMobile ? 0 : Math.max(12, rect.bottom + 8), left: isMobile ? 0 : Math.min(Math.max(12, rect.left), Math.max(12, window.innerWidth - 360)) }) }
+  function clearSelection() { window.getSelection()?.removeAllRanges(); setSelectionAnchor(undefined); setSelectionPosition(undefined) }
+  async function saveAnnotation(pending: { segments: TextAnchorSegment[]; quote: string; anchorKey: string }, color: AnnotationColor, note?: string) { const repository = mockAnnotationRepository(); if (!repository) return; const overlap = findAnnotationOverlap(annotations, pending.segments); if (overlap) return; try { await repository.add({ resourceKey, segments: pending.segments, quote: pending.quote, color, note }); setAnnotations(await repository.listForResource(resourceKey)); clearSelection(); setEditor(undefined) } catch { /* Local annotation storage is optional for the prototype reader. */ } }
+  async function saveEditor(note: string, color: AnnotationColor) { const repository = mockAnnotationRepository(); if (editor?.annotation && repository) { const updated = await repository.update(editor.annotation.id, { note: note.trim() || undefined, color }); if (updated) setAnnotations(await repository.listForResource(resourceKey)); setEditor(undefined) } else if (editor?.pending) await saveAnnotation(editor.pending, color, note.trim() || undefined) }
+  function openAnnotation(annotation: ReaderAnnotation, target: HTMLElement) { clearSelection(); setEditor({ anchor: target, annotation, color: annotation.color }) }
   function handleReadingAreaClick(event: MouseEvent<HTMLElement>) {
     if (!shouldToggleReaderChrome({ currentTarget: event.currentTarget, defaultPrevented: event.defaultPrevented, selectedText: window.getSelection()?.toString() ?? '', target: event.target })) return
     if (isMobile) {
@@ -101,6 +120,11 @@ export function ReaderPage() {
     if (segment.kind === 'word') { const item = vocabularyById.get(segment.vocabularyId); return item ? <ReaderWord displayText={segment.text} item={item} key={key} learnedReminder={segment.learnedReminder} onOpen={openDictionary} /> : <span key={key}>{segment.text}</span> }
     return <InteractiveSentence key={key} onOpen={(anchor) => openSentence(segment.aidId, anchor)}>{segment.text}</InteractiveSentence>
   }
+  function renderMockParagraph(paragraph: ReaderSegment[], paragraphIndex: number) {
+    const blockId = `mock-paragraph-${paragraphIndex}`; const text = paragraph.map((segment) => segment.text).join(''); const marks = annotations.flatMap((annotation) => annotation.segments.filter((segment) => segment.blockId === blockId).map((segment) => ({ annotation, start: segment.startOffset, end: segment.endOffset }))).filter((mark) => mark.start >= 0 && mark.end <= text.length && mark.start < mark.end); if (!marks.length) return paragraph.map((segment, segmentIndex) => renderSegment(segment, paragraphIndex, segmentIndex))
+    const boundaries = [...new Set([0, text.length, ...marks.flatMap((mark) => [mark.start, mark.end]), ...paragraph.reduce<number[]>((values, segment, index) => { const start = paragraph.slice(0, index).reduce((total, item) => total + item.text.length, 0); values.push(start, start + segment.text.length); return values }, [])])].sort((left, right) => left - right)
+    return boundaries.slice(0, -1).map((start, index) => { const end = boundaries[index + 1]; const segmentIndex = paragraph.findIndex((segment, itemIndex) => { const segmentStart = paragraph.slice(0, itemIndex).reduce((total, item) => total + item.text.length, 0); return segmentStart <= start && end <= segmentStart + segment.text.length }); const segment = paragraph[segmentIndex]; const segmentStart = paragraph.slice(0, segmentIndex).reduce((total, item) => total + item.text.length, 0); const rendered = segment ? renderSegment({ ...segment, text: segment.text.slice(start - segmentStart, end - segmentStart) }, paragraphIndex, `${segmentIndex}-${start}` as unknown as number) : text.slice(start, end); const mark = marks.find((candidate) => candidate.start <= start && end <= candidate.end); return mark ? <mark aria-label="Highlighted text. Click to edit." className={`reader-annotation reader-annotation--${mark.annotation.color}`} data-annotation-id={mark.annotation.id} key={`${mark.annotation.id}-${start}`} onClick={(event) => openAnnotation(mark.annotation, event.currentTarget)} role="button" tabIndex={0}>{rendered}</mark> : <span key={`${paragraphIndex}-${start}`}>{rendered}</span> })
+  }
   const activeVocabulary = activePanel?.kind === 'dictionary' ? vocabularyById.get(activePanel.vocabularyId) : undefined
   const activeSentenceAid = activePanel?.kind === 'sentence' ? sentenceAids[activePanel.aidId] : undefined
   const layout = resolveReaderLayout(settings, isMobile)
@@ -108,18 +132,21 @@ export function ReaderPage() {
   return <div className="reader-shell">
     <ReaderChrome backLabel={hasSearchHistory ? 'Back to previous reading position' : 'Back to Library'} bookTitle={currentBook.title} chapterLabel={readerChapter.chapterLabel} chromeRef={chromeRef} isMobile={isMobile} onBack={backFromSearch} onMore={(anchor) => openChromePanel('more', anchor)} onSettings={(anchor) => openChromePanel('settings', anchor)} onToggleBookmark={() => { void toggleBookmark() }} onOpenBookmarks={openBookmarks} onOpenSearch={openSearch} bookmarkActive={Boolean(currentBookmark())} visible={visible} />
     <ReaderChromeRevealZone onReveal={reveal} visible={visible} />
-    <main className="reader-main" onClick={handleReadingAreaClick}>
+    <main className="reader-main" onClick={handleReadingAreaClick} onPointerUp={captureSelection}>
       <article aria-labelledby="reader-chapter-title" className={`reader-article ${layout.className}`} data-reader-section-id={readerChapter.chapterLabel} lang={readerLanguage('en')} ref={articleRef} style={layout.styleVariables as CSSProperties}>
         <header className="reader-chapter-heading"><div className="reader-chapter-heading__mark"><BookOpen aria-hidden="true" size={16} />{readerChapter.chapterLabel}</div><h1 id="reader-chapter-title" tabIndex={-1}>{readerChapter.chapterTitle}</h1><p>{readerChapter.readingHint}</p></header>
-        <div className="reader-prose">{readerChapter.paragraphs.map((paragraph, paragraphIndex) => <p data-reader-block-id={`mock-paragraph-${paragraphIndex}`} key={paragraphIndex}>{paragraph.map((segment, segmentIndex) => renderSegment(segment, paragraphIndex, segmentIndex))}</p>)}</div>
+        <div className="reader-prose">{readerChapter.paragraphs.map((paragraph, paragraphIndex) => <p data-reader-block-id={`mock-paragraph-${paragraphIndex}`} key={paragraphIndex}>{renderMockParagraph(paragraph, paragraphIndex)}</p>)}</div>
         <footer className="reader-chapter-end"><Sparkles aria-hidden="true" size={15} /><span>A quiet place to stop, whenever you are ready.</span></footer>
       </article>
     </main>
     {activePanel?.kind === 'settings' && <AdaptivePanel anchorElement={activePanel.anchor} isMobile={isMobile} label="Reading settings" onClose={() => setActivePanel(null)} variant="settings"><ReadingSettingsPanel settings={settings} setSettings={setSettings} /></AdaptivePanel>}
-    {activePanel?.kind === 'more' && <AdaptivePanel anchorElement={activePanel.anchor} isMobile={isMobile} label="More reader options" onClose={() => setActivePanel(null)} variant="more"><ReaderMoreMenu /></AdaptivePanel>}
+    {selectionAnchor && selectionPosition && <div className="selection-toolbar-host" style={selectionPosition}><SelectionToolbar isMobile={isMobile} onAddNote={() => { if (selectionAnchor && articleRef.current) { const pending = selectionAnchor; setSelectionAnchor(undefined); setSelectionPosition(undefined); setEditor({ anchor: articleRef.current, pending, color: 'lavender' }) } }} onCancel={clearSelection} onHighlight={(color) => { void saveAnnotation(selectionAnchor, color) }} /></div>}
+    {activePanel?.kind === 'more' && <AdaptivePanel anchorElement={activePanel.anchor} isMobile={isMobile} label="More reader options" onClose={() => setActivePanel(null)} variant="more"><ReaderMoreMenu onOpenAnnotations={() => openAnnotations(activePanel.anchor as HTMLButtonElement)} /></AdaptivePanel>}
     {activePanel && activeVocabulary && <AdaptivePanel anchorElement={activePanel.anchor} isMobile={isMobile} label="Quick meaning" onClose={() => setActivePanel(null)} variant="dictionary"><DictionaryContent acknowledged={acknowledgedIds.has(activeVocabulary.id)} addedToLearning={learningIds.has(activeVocabulary.id)} item={activeVocabulary} lookupCount={lookupCounts[activeVocabulary.id] ?? 1} moreVisible={moreVisible} onAcknowledge={() => setAcknowledgedIds((current) => addToSet(current, activeVocabulary.id))} onAddToLearning={() => setLearningIds((current) => addToSet(current, activeVocabulary.id))} onToggleMore={() => setMoreVisible((current) => !current)} /></AdaptivePanel>}
     {activePanel && activeSentenceAid && <AdaptivePanel anchorElement={activePanel.anchor} isMobile={isMobile} label="Sentence help" onClose={() => setActivePanel(null)} variant="sentence"><SentenceAidContent aid={activeSentenceAid} /></AdaptivePanel>}
     {bookmarksAnchor && <AdaptivePanel anchorElement={bookmarksAnchor} isMobile={isMobile} label="Bookmarks" onClose={() => setBookmarksAnchor(undefined)} variant="bookmarks"><ReaderBookmarksPanel bookmarks={bookmarks} onDelete={(bookmark) => { void getBookmarkRepository().remove(bookmark.id).then(async () => setBookmarks(await getBookmarkRepository().listForResource(resourceKey))).catch(() => undefined) }} onOpen={openBookmark} /></AdaptivePanel>}
+    {annotationsAnchor && <AdaptivePanel anchorElement={annotationsAnchor} isMobile={isMobile} label="Highlights & Notes" onClose={() => setAnnotationsAnchor(undefined)} variant="more"><HighlightsNotesPanel annotations={annotations} locationLabel={() => readerChapter.chapterLabel} onDelete={(annotation) => { const repository = mockAnnotationRepository(); if (repository) void repository.remove(annotation.id).then(async () => setAnnotations(await repository.listForResource(resourceKey))) }} onEdit={(annotation) => setEditor({ anchor: annotationsAnchor, annotation, color: annotation.color })} onOpen={(annotation) => { const first = annotation.segments[0]; const target = first ? articleRef.current?.querySelector<HTMLElement>(`[data-reader-block-id="${first.blockId}"]`) : undefined; if (target) { target.scrollIntoView({ block: 'center' }); openAnnotation(annotation, target) } }} /></AdaptivePanel>}
+    {editor && <AdaptivePanel anchorElement={editor.anchor} isMobile={isMobile} label={editor.annotation ? 'Edit highlight' : 'Add note'} onClose={() => setEditor(undefined)} variant="more"><AnnotationEditor annotation={editor.annotation} color={editor.color} note={editor.annotation?.note} onCancel={() => setEditor(undefined)} onColor={(color) => setEditor((current) => current ? { ...current, color } : current)} onDelete={editor.annotation ? () => { const repository = mockAnnotationRepository(); if (repository) void repository.remove(editor.annotation!.id).then(async () => { setAnnotations(await repository.listForResource(resourceKey)); setEditor(undefined) }) } : undefined} onSave={(note, color) => { void saveEditor(note, color) }} quote={editor.annotation?.quote ?? editor.pending?.quote ?? ''} /></AdaptivePanel>}
     {searchAnchor && <AdaptivePanel anchorElement={searchAnchor} isMobile={isMobile} label="Search in current book" onClose={() => setSearchAnchor(undefined)} variant="search"><ReaderSearchPanel kind="reflowable" onSelect={openSearchResult} ref={searchPanelRef} resourceKey={resourceKey} sections={mockSections} /></AdaptivePanel>}
   </div>
 }

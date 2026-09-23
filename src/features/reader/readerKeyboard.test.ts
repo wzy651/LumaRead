@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { getReaderSectionNavigationDelta, isReaderKeyboardEventBlocked, shouldToggleReaderChrome } from './readerKeyboard'
+import { getReaderNavigationAction, getReaderSectionNavigationDelta, isReaderKeyboardEventBlocked, shouldToggleReaderChrome } from './readerKeyboard'
 
 afterEach(() => {
   vi.unstubAllGlobals()
@@ -28,6 +28,18 @@ describe('reader keyboard policy', () => {
     expect(getReaderSectionNavigationDelta(key('PageDown', { ctrlKey: true, shiftKey: true }))).toBeUndefined()
     expect(getReaderSectionNavigationDelta(key('PageDown', { ctrlKey: true, altKey: true }))).toBeUndefined()
     expect(getReaderSectionNavigationDelta(key('ArrowRight', { repeat: true }))).toBeUndefined()
+  })
+
+  it('dispatches page turns and chapter jumps by mode while respecting boundaries and focus', () => {
+    expect(getReaderNavigationAction(key('ArrowLeft'), 'pages', 1, 3)).toBe('previous-page')
+    expect(getReaderNavigationAction(key('PageDown'), 'pages', 1, 3)).toBe('next-page')
+    expect(getReaderNavigationAction(key('ArrowRight'), 'scroll', 1, 3)).toBe('next-section')
+    expect(getReaderNavigationAction(key('PageDown'), 'scroll', 1, 3)).toBeUndefined()
+    expect(getReaderNavigationAction(key('PageUp', { ctrlKey: true }), 'pages', 1, 3)).toBe('previous-section')
+    expect(getReaderNavigationAction(key('PageDown', { ctrlKey: true }), 'scroll', 0, 3)).toBe('next-section')
+    expect(getReaderNavigationAction(key('PageUp', { ctrlKey: true }), 'pages', 0, 3)).toBeUndefined()
+    expect(getReaderNavigationAction(keyFromTarget(document.createElement('input'), 'PageDown'), 'pages', 0, 3)).toBeUndefined()
+    expect(getReaderNavigationAction(key('ArrowRight', { repeat: true }), 'pages', 0, 3)).toBeUndefined()
   })
 
   it('blocks chapter navigation from controls, panels, composing input, and selection', () => {

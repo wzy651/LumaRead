@@ -26,6 +26,26 @@ export function getReaderSectionNavigationDelta(event: KeyboardEvent): -1 | 1 | 
   return undefined
 }
 
+export type ReaderNavigationAction = 'previous-page' | 'next-page' | 'previous-section' | 'next-section'
+
+export function getReaderNavigationAction(event: KeyboardEvent, mode: 'scroll' | 'pages', sectionIndex: number, sectionCount: number): ReaderNavigationAction | undefined {
+  if (event.repeat || isReaderKeyboardEventBlocked(event)) return undefined
+  const ctrlOnly = event.ctrlKey && !event.altKey && !event.metaKey && !event.shiftKey
+  const plain = !event.ctrlKey && !event.altKey && !event.metaKey && !event.shiftKey
+  const delta = event.key === 'ArrowLeft' || event.key === 'PageUp' ? -1 : event.key === 'ArrowRight' || event.key === 'PageDown' ? 1 : undefined
+  if (ctrlOnly && (event.key === 'PageUp' || event.key === 'PageDown')) {
+    const target = sectionIndex + (delta ?? 0)
+    return target < 0 || target >= sectionCount ? undefined : delta === -1 ? 'previous-section' : 'next-section'
+  }
+  if (!plain || delta === undefined) return undefined
+  if (mode === 'pages' && (event.key === 'PageUp' || event.key === 'PageDown' || event.key === 'ArrowLeft' || event.key === 'ArrowRight')) return delta < 0 ? 'previous-page' : 'next-page'
+  if (mode === 'scroll' && (event.key === 'ArrowLeft' || event.key === 'ArrowRight')) {
+    const target = sectionIndex + delta
+    return target < 0 || target >= sectionCount ? undefined : delta < 0 ? 'previous-section' : 'next-section'
+  }
+  return undefined
+}
+
 export function isReaderEscapeBlocked(event: KeyboardEvent) {
   if (event.defaultPrevented || event.isComposing) return true
   return Boolean(elementFromEventTarget(event.target)?.closest('input, textarea, select, [contenteditable="true"]'))

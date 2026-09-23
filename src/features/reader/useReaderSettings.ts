@@ -4,6 +4,7 @@ export type ReaderFontFamily = 'serif' | 'sans'
 export type ReaderLineHeight = 'compact' | 'comfortable' | 'relaxed'
 export type ReaderTextAlignment = 'auto' | 'left' | 'justify'
 export type MobileSideMargin = 'compact' | 'comfortable' | 'spacious'
+export type EpubReadingMode = 'scroll' | 'pages'
 
 export interface ReaderSettings {
   fontFamily: ReaderFontFamily
@@ -12,14 +13,16 @@ export interface ReaderSettings {
   textWidthCh: number
   mobileSideMargin: MobileSideMargin
   textAlignment: ReaderTextAlignment
+  epubReadingMode: EpubReadingMode
   /** v2 compatibility only; persisted v3 settings use textWidthCh. */
   pageWidth?: 'narrow' | 'comfortable' | 'wide'
 }
 
-export const readerSettingsStorageKey = 'lumaread-reader-settings:v3'
+export const readerSettingsStorageKey = 'lumaread-reader-settings:v4'
+export const v3ReaderSettingsStorageKey = 'lumaread-reader-settings:v3'
 export const v2ReaderSettingsStorageKey = 'lumaread-reader-settings:v2'
 export const legacyReaderSettingsStorageKey = 'lumaread-reader-settings:v1'
-export const readerSettingsDefaults: ReaderSettings = { fontFamily: 'serif', fontScale: 1, lineHeight: 'comfortable', textWidthCh: 64, mobileSideMargin: 'comfortable', textAlignment: 'auto' }
+export const readerSettingsDefaults: ReaderSettings = { fontFamily: 'serif', fontScale: 1, lineHeight: 'comfortable', textWidthCh: 64, mobileSideMargin: 'comfortable', textAlignment: 'auto', epubReadingMode: 'scroll' }
 
 export function normalizeReaderSettings(stored: Partial<ReaderSettings> | null | undefined): ReaderSettings {
   return {
@@ -29,6 +32,7 @@ export function normalizeReaderSettings(stored: Partial<ReaderSettings> | null |
     textWidthCh: typeof stored?.textWidthCh === 'number' && Number.isInteger(stored.textWidthCh) && stored.textWidthCh >= 48 && stored.textWidthCh <= 80 && stored.textWidthCh % 2 === 0 ? stored.textWidthCh : 64,
     mobileSideMargin: stored?.mobileSideMargin === 'compact' || stored?.mobileSideMargin === 'spacious' ? stored.mobileSideMargin : 'comfortable',
     textAlignment: stored?.textAlignment === 'left' || stored?.textAlignment === 'justify' ? stored.textAlignment : 'auto',
+    epubReadingMode: stored?.epubReadingMode === 'pages' ? 'pages' : 'scroll',
   }
 }
 
@@ -37,9 +41,10 @@ export function readReaderSettings(): ReaderSettings {
   try {
     const v3 = window.localStorage.getItem(readerSettingsStorageKey)
     if (v3 !== null) return normalizeReaderSettings(JSON.parse(v3) as Partial<ReaderSettings>)
+    const previousV3 = window.localStorage.getItem(v3ReaderSettingsStorageKey)
     const v2 = window.localStorage.getItem(v2ReaderSettingsStorageKey)
     const v1 = window.localStorage.getItem(legacyReaderSettingsStorageKey)
-    const old = v2 ?? v1
+    const old = previousV3 ?? v2 ?? v1
     const raw = old === null ? undefined : JSON.parse(old) as Partial<ReaderSettings> & { pageWidth?: 'narrow' | 'comfortable' | 'wide' }
     const migrated = normalizeReaderSettings(raw ? { ...raw, textWidthCh: raw.textWidthCh ?? (raw.pageWidth === 'narrow' ? 54 : raw.pageWidth === 'wide' ? 74 : 64) } : undefined)
     if (old !== null) {

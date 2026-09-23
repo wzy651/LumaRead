@@ -7,6 +7,7 @@ export interface LocatorNavigationContext {
   sections: Pick<DocumentSection, 'id' | 'blocks'>[]
   sectionIndex: number
   root?: ParentNode
+  pageContainer?: HTMLElement
 }
 
 function sectionRoot(root: ParentNode, sectionId?: string): ParentNode {
@@ -22,12 +23,31 @@ function blockElements(root: ParentNode = document, sectionId?: string) {
 export function createLocatorFromCurrentPosition(context: LocatorNavigationContext): ReaderLocator {
   const section = context.sections[Math.min(Math.max(context.sectionIndex, 0), Math.max(context.sections.length - 1, 0))]
   const elements = blockElements(context.root, section?.id)
-  const viewportTop = typeof window === 'undefined' ? 0 : window.innerHeight * 0.12
-  const element = elements.find((candidate) => candidate.getBoundingClientRect().bottom > viewportTop) ?? elements.at(-1)
+  const pageContainer = context.pageContainer
+  const viewportTop = pageContainer ? pageContainer.getBoundingClientRect().top + 24 : typeof window === 'undefined' ? 0 : window.innerHeight * 0.12
+  const element = elements.find((candidate) => { const rect = candidate.getBoundingClientRect(); const viewport = pageContainer?.getBoundingClientRect(); return pageContainer && viewport ? rect.right > viewport.left + 16 && rect.left < viewport.right - 16 : rect.bottom > viewportTop }) ?? elements.at(-1)
   const blockId = element?.dataset.readerBlockId
   const maximum = typeof document === 'undefined' || typeof window === 'undefined' ? 1 : Math.max(1, document.documentElement.scrollHeight - window.innerHeight)
   const progression = typeof window === 'undefined' ? 0 : Math.min(1, Math.max(0, window.scrollY / maximum))
-  const locator: ReflowableReaderLocator = { version: 1, kind: 'reflowable', resourceKey: context.resourceKey, sectionId: section?.id ?? 'section-0', sectionIndex: context.sectionIndex, ...(blockId ? { blockId } : { progression }) }
+  let textOffset: number | undefined
+  if (element) {
+    const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT)
+    let offset = 0
+    let node = walker.nextNode()
+    while (node) {
+      const text = node.textContent ?? ''
+      for (let index = 0; index < text.length; index += 1) {
+        const range = document.createRange(); range.setStart(node, index); range.setEnd(node, index + 1)
+        const rect = typeof range.getBoundingClientRect === 'function' ? range.getBoundingClientRect() : undefined
+        if (!rect) { textOffset = 0; break }
+        const viewport = pageContainer?.getBoundingClientRect()
+        if (pageContainer && viewport ? rect.right > viewport.left + 16 && rect.left < viewport.right - 16 : rect.bottom > viewportTop) { textOffset = offset + index; break }
+      }
+      if (textOffset !== undefined) break
+      offset += text.length; node = walker.nextNode()
+    }
+  }
+  const locator: ReflowableReaderLocator = { version: 1, kind: 'reflowable', resourceKey: context.resourceKey, sectionId: section?.id ?? 'section-0', sectionIndex: context.sectionIndex, ...(blockId ? { blockId, ...(textOffset !== undefined ? { textOffset } : {}) } : { progression }) }
   return locator
 }
 
@@ -41,7 +61,16 @@ export function navigateToLocator(locator: ReaderLocator, context: LocatorNaviga
   const targetId = resolved.blockId
   if (targetId) {
     const target = blockElements(context.root, resolved.locator.kind === 'reflowable' ? resolved.locator.sectionId : undefined).find((candidate) => candidate.dataset.readerBlockId === targetId)
-    if (target) { target.scrollIntoView({ block: 'start', behavior: 'auto' }); return true }
+    if (target) {
+      const offset = resolved.locator.kind === 'reflowable' ? resolved.locator.textOffset : undefined
+      if (offset !== undefined) {
+        const walker = document.createTreeWalker(target, NodeFilter.SHOW_TEXT); let remaining = offset; let node = walker.nextNode()
+        while (node) { const length = node.textContent?.length ?? 0; if (remaining <= length) { const range = document.createRange(); range.setStart(node, remaining); range.setEnd(node, Math.min(length, remaining + 1)); const rect = typeof range.getBoundingClientRect === 'function' ? range.getBoundingClientRect() : undefined; if (rect) { if (context.pageContainer) { const style = getComputedStyle(context.pageContainer); const stride = (Number.parseFloat(style.columnWidth) || context.pageContainer.clientWidth) + (Number.parseFloat(style.columnGap) || 0); const padding = Number.parseFloat(style.paddingLeft) || 0; const page = Math.max(0, Math.floor((rect.left - context.pageContainer.getBoundingClientRect().left + context.pageContainer.scrollLeft - padding) / Math.max(1, stride))); context.pageContainer.scrollTo({ left: page * stride, behavior: 'auto' }) } else window.scrollTo({ top: Math.max(0, window.scrollY + rect.top - window.innerHeight * 0.12), behavior: 'auto' }); return true } break } remaining -= length; node = walker.nextNode() }
+      }
+      if (context.pageContainer) { const rect = target.getBoundingClientRect(); const style = getComputedStyle(context.pageContainer); const stride = (Number.parseFloat(style.columnWidth) || context.pageContainer.clientWidth) + (Number.parseFloat(style.columnGap) || 0); const padding = Number.parseFloat(style.paddingLeft) || 0; const page = Math.max(0, Math.floor((rect.left - context.pageContainer.getBoundingClientRect().left + context.pageContainer.scrollLeft - padding) / Math.max(1, stride))); context.pageContainer.scrollTo({ left: page * stride, behavior: 'auto' }) }
+      else target.scrollIntoView({ block: 'start', behavior: 'auto' })
+      return true
+    }
   }
   const progression = resolved.locator.kind === 'reflowable' ? resolved.locator.progression ?? 0 : 0
   const maximum = Math.max(0, document.documentElement.scrollHeight - window.innerHeight)

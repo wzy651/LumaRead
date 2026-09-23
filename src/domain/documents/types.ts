@@ -13,7 +13,7 @@ export type DocumentBlock =
   | (DocumentBlockBase & { type: 'heading'; level: 1 | 2 | 3 | 4 | 5 | 6 })
   | (DocumentBlockBase & { type: 'list-item'; ordered: boolean })
 export interface DocumentSection { id: string; title?: string; order: number; blocks: DocumentBlock[] }
-export interface ReaderLocation { documentId: string; sectionId: string; sectionIndex: number; progressPercent: number; updatedAt: string; pdf?: { mode: 'original' | 'reading'; zoomMode: 'comfortable' | 'fit-width' | 'fit-page' | 'actual' | 'custom'; zoom?: number; rotation: number; pageNumber: number } }
+export interface ReaderLocation { documentId: string; sectionId: string; sectionIndex: number; progressPercent: number; updatedAt: string; locator?: import('../reader-locator').ReaderLocator; pdf?: { mode: 'original' | 'reading'; zoomMode: 'comfortable' | 'fit-width' | 'fit-page' | 'actual' | 'custom'; zoom?: number; rotation: number; pageNumber: number } }
 export interface DocumentCapabilities { reflowable: boolean; supportsOriginalLayout: boolean; supportsTextSelection: boolean; supportsSearch: boolean; supportsTableOfContents: boolean; supportsPagination: boolean; supportsReadAloud: boolean; supportsInternalLinks?: boolean }
 export interface ParsedDocument { metadata: DocumentMetadata; sections: DocumentSection[]; capabilities: DocumentCapabilities }
 export type DocumentErrorCode = 'unsupported-format' | 'empty-file' | 'file-too-large' | 'duplicate-document' | 'invalid-document' | 'read-failed' | 'parse-failed' | 'storage-failed'

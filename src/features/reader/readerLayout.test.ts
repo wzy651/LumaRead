@@ -31,7 +31,7 @@ describe('shared reader layout', () => {
   })
 
   it('has a complete layout reset default without changing theme state', () => {
-    expect(readerSettingsDefaults).toEqual({ fontFamily: 'serif', fontScale: 1, lineHeight: 'comfortable', textWidthCh: 64, mobileSideMargin: 'comfortable', textAlignment: 'auto' })
+    expect(readerSettingsDefaults).toEqual({ fontFamily: 'serif', fontScale: 1, lineHeight: 'comfortable', textWidthCh: 64, mobileSideMargin: 'comfortable', textAlignment: 'auto', epubReadingMode: 'scroll' })
   })
 
 })

@@ -176,6 +176,25 @@
   padding: clamp(var(--space-8), 7vw, 72px) var(--reader-article-inline-padding);
 }
 
+.reader-main--pages { position: fixed; inset: 0; min-block-size: 0; overflow: hidden; padding: calc(76px + var(--safe-area-top)) max(16px, var(--safe-area-right)) calc(72px + var(--safe-area-bottom)) max(16px, var(--safe-area-left)); }
+.reader-article--pages { display: block; width: min(100%, calc(var(--reader-content-width, 64ch) + var(--reader-article-inline-padding) * 2)); height: 100%; min-height: 0; max-height: 100%; overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; scrollbar-width: none; column-width: var(--reader-content-width, 64ch); column-count: auto; column-gap: clamp(28px, 5vw, 64px); column-fill: auto; }
+.reader-article--pages::-webkit-scrollbar { display: none; }
+.reader-article--pages .reader-chapter-heading { break-inside: avoid; }
+.reader-article--pages .reader-prose { break-before: auto; }
+.reader-article--pages .reader-section-nav { display: none; }
+.reader-page-navigation { position: fixed; z-index: 5; right: max(24px, var(--safe-area-right)); bottom: calc(12px + var(--safe-area-bottom)); left: max(24px, var(--safe-area-left)); display: flex; align-items: center; justify-content: center; gap: 12px; pointer-events: none; opacity: 0; transition: opacity var(--duration-standard) var(--ease-out); }
+.reader-page-navigation.is-visible { opacity: 1; }
+.reader-page-navigation button { min-height: 42px; border: 1px solid var(--color-border); border-radius: var(--radius-button); background: var(--color-surface); color: var(--color-text); padding: 0 14px; pointer-events: auto; }
+.reader-page-navigation button:disabled { opacity: .4; }
+.reader-page-navigation span { min-width: 8em; border-radius: 999px; background: color-mix(in srgb, var(--color-surface) 92%, transparent); color: var(--color-text-muted); font: .75rem var(--font-ui); padding: 8px 12px; text-align: center; }
+
+@media (max-width: 767px) {
+  .reader-main, .pdf-reader { touch-action: pan-y pinch-zoom; }
+  .reader-main--pages { padding: calc(68px + var(--safe-area-top)) max(12px, var(--safe-area-right)) calc(68px + var(--safe-area-bottom)) max(12px, var(--safe-area-left)); }
+  .reader-article--pages { width: 100%; padding: 28px max(20px, var(--safe-area-left)) 28px max(20px, var(--safe-area-right)); border-radius: 14px; column-width: calc(100vw - 108px); }
+  .reader-page-navigation { bottom: calc(8px + var(--safe-area-bottom)); }
+}
+
 .reader-chapter-heading {
   margin: 0 auto clamp(var(--space-8), 6vw, var(--space-12));
   text-align: center;

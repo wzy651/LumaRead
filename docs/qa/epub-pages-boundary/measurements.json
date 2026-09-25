@@ -1,0 +1,940 @@
+[
+  {
+    "phase": "baseline-css-page1",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "clientWidth": 350,
+    "clientHeight": 780,
+    "contentWidth": 310,
+    "paddingLeft": 20,
+    "paddingRight": 20,
+    "computedColumnWidth": "282px",
+    "columnGap": "28px",
+    "computedStride": 310,
+    "measuredColumnPitch": 338,
+    "measuredColumnWidth": 310,
+    "scrollLeft": 0,
+    "scrollWidth": 62204,
+    "pageCountLabel": "1 / 184 in chapter",
+    "visibleColumnIndices": [
+      0
+    ],
+    "visibleBlockIds": [
+      "block-1"
+    ],
+    "rect": {
+      "left": 20,
+      "right": 370,
+      "top": 32,
+      "bottom": 812
+    },
+    "scrollOverflow": false
+  },
+  {
+    "phase": "baseline-css-page3",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "clientWidth": 350,
+    "clientHeight": 780,
+    "contentWidth": 310,
+    "paddingLeft": 20,
+    "paddingRight": 20,
+    "computedColumnWidth": "282px",
+    "columnGap": "28px",
+    "computedStride": 310,
+    "measuredColumnPitch": 338,
+    "measuredColumnWidth": 310,
+    "scrollLeft": 620,
+    "scrollWidth": 62204,
+    "pageCountLabel": "3 / 184 in chapter",
+    "visibleColumnIndices": [
+      1,
+      2
+    ],
+    "visibleBlockIds": [
+      "block-1",
+      "block-2",
+      "block-3"
+    ],
+    "rect": {
+      "left": 20,
+      "right": 370,
+      "top": 32,
+      "bottom": 812
+    },
+    "scrollOverflow": false
+  },
+  {
+    "phase": "after-fix",
+    "label": "390x844-page-1",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "clientWidth": 350,
+    "clientHeight": 780,
+    "contentWidth": 350,
+    "paddingLeft": 0,
+    "paddingRight": 0,
+    "computedColumnWidth": "350px",
+    "columnGap": "28px",
+    "computedStride": 378,
+    "measuredColumnPitch": 378,
+    "measuredColumnWidth": 350,
+    "scrollLeft": 0,
+    "scrollWidth": 59696,
+    "pageCountLabel": "1 / 158 in chapter",
+    "visibleColumnIndices": [
+      0
+    ],
+    "visibleBlockIds": [
+      "block-1"
+    ],
+    "rect": {
+      "left": 20,
+      "right": 370,
+      "top": 32,
+      "bottom": 812
+    },
+    "scrollOverflow": false
+  },
+  {
+    "phase": "after-fix",
+    "label": "390x844-page-79",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "clientWidth": 350,
+    "clientHeight": 780,
+    "contentWidth": 350,
+    "paddingLeft": 0,
+    "paddingRight": 0,
+    "computedColumnWidth": "350px",
+    "columnGap": "28px",
+    "computedStride": 378,
+    "measuredColumnPitch": 378,
+    "measuredColumnWidth": 350,
+    "scrollLeft": 29484,
+    "scrollWidth": 59696,
+    "pageCountLabel": "79 / 158 in chapter",
+    "visibleColumnIndices": [
+      78
+    ],
+    "visibleBlockIds": [
+      "block-75",
+      "block-76"
+    ],
+    "rect": {
+      "left": 20,
+      "right": 370,
+      "top": 32,
+      "bottom": 812
+    },
+    "scrollOverflow": false
+  },
+  {
+    "phase": "after-fix",
+    "label": "390x844-page-158",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "clientWidth": 350,
+    "clientHeight": 780,
+    "contentWidth": 350,
+    "paddingLeft": 0,
+    "paddingRight": 0,
+    "computedColumnWidth": "350px",
+    "columnGap": "28px",
+    "computedStride": 378,
+    "measuredColumnPitch": 378,
+    "measuredColumnWidth": 350,
+    "scrollLeft": 59346,
+    "scrollWidth": 59696,
+    "pageCountLabel": "158 / 158 in chapter",
+    "visibleColumnIndices": [
+      157
+    ],
+    "visibleBlockIds": [
+      "block-150"
+    ],
+    "rect": {
+      "left": 20,
+      "right": 370,
+      "top": 32,
+      "bottom": 812
+    },
+    "scrollOverflow": false
+  },
+  {
+    "phase": "after-fix",
+    "label": "413x699-page-1",
+    "viewport": {
+      "width": 413,
+      "height": 699
+    },
+    "clientWidth": 373,
+    "clientHeight": 635,
+    "contentWidth": 373,
+    "paddingLeft": 0,
+    "paddingRight": 0,
+    "computedColumnWidth": "373px",
+    "columnGap": "28px",
+    "computedStride": 401,
+    "measuredColumnPitch": 401,
+    "measuredColumnWidth": 373,
+    "scrollLeft": 0,
+    "scrollWidth": 70949,
+    "pageCountLabel": "1 / 177 in chapter",
+    "visibleColumnIndices": [
+      0
+    ],
+    "visibleBlockIds": [
+      "block-1"
+    ],
+    "rect": {
+      "left": 20,
+      "right": 393,
+      "top": 32,
+      "bottom": 667
+    },
+    "scrollOverflow": false
+  },
+  {
+    "phase": "after-fix",
+    "label": "413x699-page-89",
+    "viewport": {
+      "width": 413,
+      "height": 699
+    },
+    "clientWidth": 373,
+    "clientHeight": 635,
+    "contentWidth": 373,
+    "paddingLeft": 0,
+    "paddingRight": 0,
+    "computedColumnWidth": "373px",
+    "columnGap": "28px",
+    "computedStride": 401,
+    "measuredColumnPitch": 401,
+    "measuredColumnWidth": 373,
+    "scrollLeft": 35288,
+    "scrollWidth": 70949,
+    "pageCountLabel": "89 / 177 in chapter",
+    "visibleColumnIndices": [
+      88
+    ],
+    "visibleBlockIds": [
+      "block-75",
+      "block-76"
+    ],
+    "rect": {
+      "left": 20,
+      "right": 393,
+      "top": 32,
+      "bottom": 667
+    },
+    "scrollOverflow": false
+  },
+  {
+    "phase": "after-fix",
+    "label": "413x699-page-177",
+    "viewport": {
+      "width": 413,
+      "height": 699
+    },
+    "clientWidth": 373,
+    "clientHeight": 635,
+    "contentWidth": 373,
+    "paddingLeft": 0,
+    "paddingRight": 0,
+    "computedColumnWidth": "373px",
+    "columnGap": "28px",
+    "computedStride": 401,
+    "measuredColumnPitch": 401,
+    "measuredColumnWidth": 373,
+    "scrollLeft": 70576,
+    "scrollWidth": 70949,
+    "pageCountLabel": "177 / 177 in chapter",
+    "visibleColumnIndices": [
+      176
+    ],
+    "visibleBlockIds": [
+      "block-150"
+    ],
+    "rect": {
+      "left": 20,
+      "right": 393,
+      "top": 32,
+      "bottom": 667
+    },
+    "scrollOverflow": false
+  },
+  {
+    "phase": "after-fix",
+    "label": "834x1112-page-1",
+    "viewport": {
+      "width": 834,
+      "height": 1112
+    },
+    "clientWidth": 599,
+    "clientHeight": 962,
+    "contentWidth": 598.5,
+    "paddingLeft": 0,
+    "paddingRight": 0,
+    "computedColumnWidth": "598.5px",
+    "columnGap": "41.7px",
+    "computedStride": 640.2,
+    "measuredColumnPitch": 640.1875,
+    "measuredColumnWidth": 598.4875,
+    "scrollLeft": 0,
+    "scrollWidth": 53734,
+    "pageCountLabel": "1 / 84 in chapter",
+    "visibleColumnIndices": [
+      0
+    ],
+    "visibleBlockIds": [
+      "block-1",
+      "block-2"
+    ],
+    "rect": {
+      "left": 116.75,
+      "right": 717.25,
+      "top": 76,
+      "bottom": 1040
+    },
+    "scrollOverflow": false
+  },
+  {
+    "phase": "after-fix",
+    "label": "834x1112-page-42",
+    "viewport": {
+      "width": 834,
+      "height": 1112
+    },
+    "clientWidth": 599,
+    "clientHeight": 962,
+    "contentWidth": 598.5,
+    "paddingLeft": 0,
+    "paddingRight": 0,
+    "computedColumnWidth": "598.5px",
+    "columnGap": "41.7px",
+    "computedStride": 640.2,
+    "measuredColumnPitch": 640.1875,
+    "measuredColumnWidth": 598.4875,
+    "scrollLeft": 26248,
+    "scrollWidth": 53734,
+    "pageCountLabel": "42 / 84 in chapter",
+    "visibleColumnIndices": [
+      41
+    ],
+    "visibleBlockIds": [
+      "block-74",
+      "block-75",
+      "block-76"
+    ],
+    "rect": {
+      "left": 116.75,
+      "right": 717.25,
+      "top": 76,
+      "bottom": 1040
+    },
+    "scrollOverflow": false
+  },
+  {
+    "phase": "after-fix",
+    "label": "834x1112-page-84",
+    "viewport": {
+      "width": 834,
+      "height": 1112
+    },
+    "clientWidth": 599,
+    "clientHeight": 962,
+    "contentWidth": 598.5,
+    "paddingLeft": 0,
+    "paddingRight": 0,
+    "computedColumnWidth": "598.5px",
+    "columnGap": "41.7px",
+    "computedStride": 640.2,
+    "measuredColumnPitch": 640.1875,
+    "measuredColumnWidth": 598.4875,
+    "scrollLeft": 53135,
+    "scrollWidth": 53734,
+    "pageCountLabel": "84 / 84 in chapter",
+    "visibleColumnIndices": [
+      82
+    ],
+    "visibleBlockIds": [
+      "block-150"
+    ],
+    "rect": {
+      "left": 116.75,
+      "right": 717.25,
+      "top": 76,
+      "bottom": 1040
+    },
+    "scrollOverflow": false
+  },
+  {
+    "phase": "after-fix",
+    "label": "1440x900-page-1",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "clientWidth": 599,
+    "clientHeight": 750,
+    "contentWidth": 598.5,
+    "paddingLeft": 0,
+    "paddingRight": 0,
+    "computedColumnWidth": "598.5px",
+    "columnGap": "64px",
+    "computedStride": 662.5,
+    "measuredColumnPitch": 662.5,
+    "measuredColumnWidth": 598.5,
+    "scrollLeft": 0,
+    "scrollWidth": 80099,
+    "pageCountLabel": "1 / 121 in chapter",
+    "visibleColumnIndices": [
+      0
+    ],
+    "visibleBlockIds": [
+      "block-1"
+    ],
+    "rect": {
+      "left": 419.75,
+      "right": 1020.25,
+      "top": 76,
+      "bottom": 828
+    },
+    "scrollOverflow": false
+  },
+  {
+    "phase": "after-fix",
+    "label": "1440x900-page-61",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "clientWidth": 599,
+    "clientHeight": 750,
+    "contentWidth": 598.5,
+    "paddingLeft": 0,
+    "paddingRight": 0,
+    "computedColumnWidth": "598.5px",
+    "columnGap": "64px",
+    "computedStride": 662.5,
+    "measuredColumnPitch": 662.5,
+    "measuredColumnWidth": 598.5,
+    "scrollLeft": 39750,
+    "scrollWidth": 80099,
+    "pageCountLabel": "61 / 121 in chapter",
+    "visibleColumnIndices": [
+      60
+    ],
+    "visibleBlockIds": [
+      "block-75",
+      "block-76"
+    ],
+    "rect": {
+      "left": 419.75,
+      "right": 1020.25,
+      "top": 76,
+      "bottom": 828
+    },
+    "scrollOverflow": false
+  },
+  {
+    "phase": "after-fix",
+    "label": "1440x900-page-121",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "clientWidth": 599,
+    "clientHeight": 750,
+    "contentWidth": 598.5,
+    "paddingLeft": 0,
+    "paddingRight": 0,
+    "computedColumnWidth": "598.5px",
+    "columnGap": "64px",
+    "computedStride": 662.5,
+    "measuredColumnPitch": 662.5,
+    "measuredColumnWidth": 598.5,
+    "scrollLeft": 79500,
+    "scrollWidth": 80099,
+    "pageCountLabel": "121 / 121 in chapter",
+    "visibleColumnIndices": [
+      120
+    ],
+    "visibleBlockIds": [
+      "block-150"
+    ],
+    "rect": {
+      "left": 419.75,
+      "right": 1020.25,
+      "top": 76,
+      "bottom": 828
+    },
+    "scrollOverflow": false
+  },
+  {
+    "phase": "before-midpage-resize",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "clientWidth": 599,
+    "clientHeight": 750,
+    "contentWidth": 598.5,
+    "paddingLeft": 0,
+    "paddingRight": 0,
+    "computedColumnWidth": "598.5px",
+    "columnGap": "64px",
+    "computedStride": 662.5,
+    "measuredColumnPitch": 662.5,
+    "measuredColumnWidth": 598.5,
+    "scrollLeft": 1325,
+    "scrollWidth": 80099,
+    "pageCountLabel": "3 / 121 in chapter",
+    "visibleColumnIndices": [
+      2
+    ],
+    "visibleBlockIds": [
+      "block-3",
+      "block-4"
+    ],
+    "rect": {
+      "left": 419.75,
+      "right": 1020.25,
+      "top": 76,
+      "bottom": 828
+    },
+    "scrollOverflow": false
+  },
+  {
+    "phase": "resize-midpage-narrow",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "clientWidth": 350,
+    "clientHeight": 780,
+    "contentWidth": 350,
+    "paddingLeft": 0,
+    "paddingRight": 0,
+    "computedColumnWidth": "350px",
+    "columnGap": "28px",
+    "computedStride": 378,
+    "measuredColumnPitch": 378,
+    "measuredColumnWidth": 350,
+    "scrollLeft": 1134,
+    "scrollWidth": 59696,
+    "pageCountLabel": "4 / 158 in chapter",
+    "visibleColumnIndices": [
+      3
+    ],
+    "visibleBlockIds": [
+      "block-3",
+      "block-4"
+    ],
+    "rect": {
+      "left": 20,
+      "right": 370,
+      "top": 32,
+      "bottom": 812
+    },
+    "scrollOverflow": false
+  },
+  {
+    "phase": "resize-midpage-wide",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "clientWidth": 599,
+    "clientHeight": 750,
+    "contentWidth": 598.5,
+    "paddingLeft": 0,
+    "paddingRight": 0,
+    "computedColumnWidth": "598.5px",
+    "columnGap": "64px",
+    "computedStride": 662.5,
+    "measuredColumnPitch": 662.5,
+    "measuredColumnWidth": 598.5,
+    "scrollLeft": 1988,
+    "scrollWidth": 80099,
+    "pageCountLabel": "4 / 121 in chapter",
+    "visibleColumnIndices": [
+      3
+    ],
+    "visibleBlockIds": [
+      "block-4",
+      "block-5"
+    ],
+    "rect": {
+      "left": 419.75,
+      "right": 1020.25,
+      "top": 76,
+      "bottom": 828
+    },
+    "scrollOverflow": false
+  },
+  {
+    "phase": "short-chapter",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "clientWidth": 599,
+    "clientHeight": 750,
+    "contentWidth": 598.5,
+    "paddingLeft": 0,
+    "paddingRight": 0,
+    "computedColumnWidth": "598.5px",
+    "columnGap": "64px",
+    "computedStride": 662.5,
+    "measuredColumnPitch": null,
+    "measuredColumnWidth": null,
+    "scrollLeft": 0,
+    "scrollWidth": 599,
+    "pageCountLabel": "1 / 1 in chapter",
+    "visibleColumnIndices": [
+      0
+    ],
+    "visibleBlockIds": [
+      "block-1"
+    ],
+    "rect": {
+      "left": 419.75,
+      "right": 1020.25,
+      "top": 76,
+      "bottom": 828
+    },
+    "scrollOverflow": false
+  },
+  {
+    "phase": "persisted-before-reopen",
+    "sectionId": "section-0",
+    "progressPercent": 1.6666666666666667,
+    "locator": {
+      "version": 1,
+      "kind": "reflowable",
+      "resourceKey": "imported:pages-boundary-fixture",
+      "sectionId": "section-0",
+      "sectionIndex": 0,
+      "blockId": "block-3",
+      "textOffset": 0
+    }
+  },
+  {
+    "phase": "reopen-location",
+    "before": {
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "clientWidth": 599,
+      "clientHeight": 750,
+      "contentWidth": 598.5,
+      "paddingLeft": 0,
+      "paddingRight": 0,
+      "computedColumnWidth": "598.5px",
+      "columnGap": "64px",
+      "computedStride": 662.5,
+      "measuredColumnPitch": 662.5,
+      "measuredColumnWidth": 598.5,
+      "scrollLeft": 1325,
+      "scrollWidth": 80099,
+      "pageCountLabel": "3 / 121 in chapter",
+      "visibleColumnIndices": [
+        2
+      ],
+      "visibleBlockIds": [
+        "block-3",
+        "block-4"
+      ],
+      "rect": {
+        "left": 419.75,
+        "right": 1020.25,
+        "top": 76,
+        "bottom": 828
+      },
+      "scrollOverflow": false
+    },
+    "after": {
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "clientWidth": 599,
+      "clientHeight": 750,
+      "contentWidth": 598.5,
+      "paddingLeft": 0,
+      "paddingRight": 0,
+      "computedColumnWidth": "598.5px",
+      "columnGap": "64px",
+      "computedStride": 662.5,
+      "measuredColumnPitch": 662.5,
+      "measuredColumnWidth": 598.5,
+      "scrollLeft": 1325,
+      "scrollWidth": 80099,
+      "pageCountLabel": "3 / 121 in chapter",
+      "visibleColumnIndices": [
+        2
+      ],
+      "visibleBlockIds": [
+        "block-3",
+        "block-4"
+      ],
+      "rect": {
+        "left": 419.75,
+        "right": 1020.25,
+        "top": 76,
+        "bottom": 828
+      },
+      "scrollOverflow": false
+    }
+  },
+  {
+    "phase": "font-resize",
+    "before": {
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "clientWidth": 599,
+      "clientHeight": 750,
+      "contentWidth": 598.5,
+      "paddingLeft": 0,
+      "paddingRight": 0,
+      "computedColumnWidth": "598.5px",
+      "columnGap": "64px",
+      "computedStride": 662.5,
+      "measuredColumnPitch": 662.5,
+      "measuredColumnWidth": 598.5,
+      "scrollLeft": 1325,
+      "scrollWidth": 80099,
+      "pageCountLabel": "3 / 121 in chapter",
+      "visibleColumnIndices": [
+        2
+      ],
+      "visibleBlockIds": [
+        "block-3",
+        "block-4"
+      ],
+      "rect": {
+        "left": 419.75,
+        "right": 1020.25,
+        "top": 76,
+        "bottom": 828
+      },
+      "scrollOverflow": false
+    },
+    "after": {
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "clientWidth": 599,
+      "clientHeight": 750,
+      "contentWidth": 598.5,
+      "paddingLeft": 0,
+      "paddingRight": 0,
+      "computedColumnWidth": "598.5px",
+      "columnGap": "64px",
+      "computedStride": 662.5,
+      "measuredColumnPitch": 662.5,
+      "measuredColumnWidth": 598.5,
+      "scrollLeft": 1325,
+      "scrollWidth": 87386,
+      "pageCountLabel": "3 / 132 in chapter",
+      "visibleColumnIndices": [
+        2
+      ],
+      "visibleBlockIds": [
+        "block-2",
+        "block-3"
+      ],
+      "rect": {
+        "left": 419.75,
+        "right": 1020.25,
+        "top": 76,
+        "bottom": 828
+      },
+      "scrollOverflow": false
+    }
+  },
+  {
+    "phase": "font-family-and-line-height",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "clientWidth": 599,
+    "clientHeight": 750,
+    "contentWidth": 598.5,
+    "paddingLeft": 0,
+    "paddingRight": 0,
+    "computedColumnWidth": "598.5px",
+    "columnGap": "64px",
+    "computedStride": 662.5,
+    "measuredColumnPitch": 662.5,
+    "measuredColumnWidth": 598.5,
+    "scrollLeft": 1325,
+    "scrollWidth": 99974,
+    "pageCountLabel": "3 / 151 in chapter",
+    "visibleColumnIndices": [
+      2
+    ],
+    "visibleBlockIds": [
+      "block-2",
+      "block-3"
+    ],
+    "rect": {
+      "left": 419.75,
+      "right": 1020.25,
+      "top": 76,
+      "bottom": 828
+    },
+    "scrollOverflow": false
+  },
+  {
+    "phase": "return-to-pages-mode",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "clientWidth": 599,
+    "clientHeight": 750,
+    "contentWidth": 598.5,
+    "paddingLeft": 0,
+    "paddingRight": 0,
+    "computedColumnWidth": "598.5px",
+    "columnGap": "64px",
+    "computedStride": 662.5,
+    "measuredColumnPitch": 662.5,
+    "measuredColumnWidth": 598.5,
+    "scrollLeft": 663,
+    "scrollWidth": 99974,
+    "pageCountLabel": "2 / 151 in chapter",
+    "visibleColumnIndices": [
+      1
+    ],
+    "visibleBlockIds": [
+      "block-1",
+      "block-2"
+    ],
+    "rect": {
+      "left": 419.75,
+      "right": 1020.25,
+      "top": 76,
+      "bottom": 828
+    },
+    "scrollOverflow": false
+  },
+  {
+    "phase": "text-width-48ch",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "clientWidth": 448,
+    "clientHeight": 750,
+    "contentWidth": 448.375,
+    "paddingLeft": 0,
+    "paddingRight": 0,
+    "computedColumnWidth": "448.375px",
+    "columnGap": "64px",
+    "computedStride": 512.375,
+    "measuredColumnPitch": 512.375,
+    "measuredColumnWidth": 448.375,
+    "scrollLeft": 512,
+    "scrollWidth": 101386,
+    "pageCountLabel": "2 / 198 in chapter",
+    "visibleColumnIndices": [
+      1
+    ],
+    "visibleBlockIds": [
+      "block-1",
+      "block-2"
+    ],
+    "rect": {
+      "left": 494.8125,
+      "right": 945.1875,
+      "top": 76,
+      "bottom": 828
+    },
+    "scrollOverflow": false
+  },
+  {
+    "phase": "text-width-64ch",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "clientWidth": 599,
+    "clientHeight": 750,
+    "contentWidth": 598.5,
+    "paddingLeft": 0,
+    "paddingRight": 0,
+    "computedColumnWidth": "598.5px",
+    "columnGap": "64px",
+    "computedStride": 662.5,
+    "measuredColumnPitch": 662.5,
+    "measuredColumnWidth": 598.5,
+    "scrollLeft": 0,
+    "scrollWidth": 99974,
+    "pageCountLabel": "1 / 151 in chapter",
+    "visibleColumnIndices": [
+      0
+    ],
+    "visibleBlockIds": [
+      "block-1"
+    ],
+    "rect": {
+      "left": 419.75,
+      "right": 1020.25,
+      "top": 76,
+      "bottom": 828
+    },
+    "scrollOverflow": false
+  },
+  {
+    "phase": "text-width-80ch",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "clientWidth": 749,
+    "clientHeight": 750,
+    "contentWidth": 748.625,
+    "paddingLeft": 0,
+    "paddingRight": 0,
+    "computedColumnWidth": "748.625px",
+    "columnGap": "64px",
+    "computedStride": 812.625,
+    "measuredColumnPitch": 812.625,
+    "measuredColumnWidth": 748.625,
+    "scrollLeft": 0,
+    "scrollWidth": 102327,
+    "pageCountLabel": "1 / 126 in chapter",
+    "visibleColumnIndices": [
+      0
+    ],
+    "visibleBlockIds": [
+      "block-1"
+    ],
+    "rect": {
+      "left": 344.6875,
+      "right": 1095.3125,
+      "top": 76,
+      "bottom": 828
+    },
+    "scrollOverflow": false
+  }
+]

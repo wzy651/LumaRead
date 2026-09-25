@@ -15,10 +15,10 @@ describe('pagination and swipe decisions', () => {
     expect(pageCountFromMetrics(1416, 751, 664, 152, 64)).toBe(2)
     expect(pageCountFromMetrics(342, 342, 310, 0, 28)).toBe(1)
   })
-  it('fits the rendered column and gap exactly to the visible scroll viewport', () => {
-    expect(pageColumnWidth(302, 28)).toBe(274)
-    expect(pageColumnWidth(302, 28) + 28).toBe(302)
-    expect(pageColumnWidth(Number.NaN, 28)).toBe(1)
+  it('uses the full content viewport for columns and adds the inter-column gap to the page stride', () => {
+    expect(pageColumnWidth(302)).toBe(302)
+    expect(pageColumnWidth(302) + 28).toBe(330)
+    expect(pageColumnWidth(Number.NaN)).toBe(1)
   })
   it('restores older progress-only locations after the page count is measured', () => {
     expect(pageIndexFromProgress(50, 4)).toBe(2)

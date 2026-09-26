@@ -65,7 +65,7 @@ The existing `npm run test:browser` EPUB boundary regression also passed. Its me
 ## Size and artifacts
 
 - Main JS: 311.49 kB (gzip 97.39 kB).
-- Reader JS: 119.19 kB (gzip 33.34 kB).
+- Reader JS: 119.69 kB (gzip 33.46 kB), including the compact lookup-card polish.
 - Shared reading-help code: 10.95 kB (gzip 5.15 kB), separate from the Home entry.
 - Offline dictionary data: about 9.7 MB, 557 lazily read shards; not bundled into the Home JS.
 - Windows test executable: `src-tauri/target/debug/lumaread.exe`, embedded production frontend, no Vite server needed. This is a debug test build, not a newly installed MSI.

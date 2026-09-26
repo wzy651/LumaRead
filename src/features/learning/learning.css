@@ -1,8 +1,11 @@
-.lookup-content, .learning-settings { display: grid; gap: 14px; color: var(--color-text); font-family: var(--font-ui); font-size: 14px; line-height: 1.65; }
+.lookup-content, .learning-settings { display: grid; gap: 12px; color: var(--color-text); font-family: var(--font-ui); font-size: 14px; line-height: 1.65; }
 .lookup-content p, .learning-settings p { margin: 0; }
 .lookup-heading { display: flex; gap: 12px; align-items: start; justify-content: space-between; }
 .lookup-heading h2 { margin: 0; font-family: var(--font-reading); font-size: 1.5rem; font-weight: 500; overflow-wrap: anywhere; }
 .lookup-heading button { flex: 0 0 auto; }
+.lookup-heading__actions { display: flex; flex: 0 0 auto; gap: 4px; }
+.lookup-dictionary-meta { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 10px; }
+.lookup-context .lookup-source { margin-top: 6px; font-family: var(--font-ui); }
 .lookup-phonetic, .lookup-source, .lookup-muted { color: var(--color-text-muted); }
 .lookup-source { display: block; font-size: 12px; }
 .lookup-definition, .lookup-answer p, .learning-status { white-space: pre-wrap; overflow-wrap: anywhere; }

@@ -3,6 +3,7 @@ import { X } from 'lucide-react'
 
 interface AdaptivePanelProps {
   anchorElement: HTMLElement
+  anchorRect?: DOMRect
   children: ReactNode
   isMobile: boolean
   label: string
@@ -23,7 +24,7 @@ function getFocusableElements(container: HTMLElement): HTMLElement[] {
   return Array.from(container.querySelectorAll<HTMLElement>('button:not([disabled]), [href], input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [contenteditable="true"], [tabindex]:not([tabindex="-1"])'))
 }
 
-export function AdaptivePanel({ anchorElement, children, isMobile, label, onClose, variant }: AdaptivePanelProps) {
+export function AdaptivePanel({ anchorElement, anchorRect, children, isMobile, label, onClose, variant }: AdaptivePanelProps) {
   const panelRef = useRef<HTMLDivElement>(null)
   const previousOverflowRef = useRef('')
   const [position, setPosition] = useState<PanelPosition>({ left: viewportMargin, top: viewportMargin, width: 380 })
@@ -31,23 +32,23 @@ export function AdaptivePanel({ anchorElement, children, isMobile, label, onClos
   const updatePosition = useCallback(() => {
     if (isMobile) return
 
-    const anchorRect = anchorElement.getBoundingClientRect()
+    const rect = anchorRect ?? anchorElement.getBoundingClientRect()
     const panelHeight = panelRef.current?.offsetHeight ?? 420
     const width = Math.min(400, window.innerWidth - viewportMargin * 2)
     const maximumLeft = Math.max(viewportMargin, window.innerWidth - width - viewportMargin)
-    const left = Math.min(Math.max(anchorRect.left + anchorRect.width / 2 - width / 2, viewportMargin), maximumLeft)
-    const roomBelow = window.innerHeight - anchorRect.bottom - anchorGap - viewportMargin
-    const roomAbove = anchorRect.top - anchorGap - viewportMargin
-    let top = anchorRect.bottom + anchorGap
+    const left = Math.min(Math.max(rect.left + rect.width / 2 - width / 2, viewportMargin), maximumLeft)
+    const roomBelow = window.innerHeight - rect.bottom - anchorGap - viewportMargin
+    const roomAbove = rect.top - anchorGap - viewportMargin
+    let top = rect.bottom + anchorGap
 
     if (roomBelow < panelHeight && roomAbove > roomBelow) {
-      top = Math.max(viewportMargin, anchorRect.top - panelHeight - anchorGap)
+      top = Math.max(viewportMargin, rect.top - panelHeight - anchorGap)
     } else {
       top = Math.min(top, Math.max(viewportMargin, window.innerHeight - panelHeight - viewportMargin))
     }
 
     setPosition({ left, top, width })
-  }, [anchorElement, isMobile])
+  }, [anchorElement, anchorRect, isMobile])
 
   useLayoutEffect(() => {
     updatePosition()

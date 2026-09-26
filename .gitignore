@@ -1,4 +1,7 @@
 node_modules/
+.local-backups/
+.local-cache/
+.qa-artifacts/
 dist/
 coverage/
 src-tauri/target/

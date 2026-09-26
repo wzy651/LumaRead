@@ -7,7 +7,7 @@ import JSZip from 'jszip'
 const root = new URL('../../', import.meta.url).pathname.replace(/^\//, '').replaceAll('/', '\\')
 const port = 4317
 const baseUrl = `http://127.0.0.1:${port}`
-const evidence = new URL('../../docs/qa/epub-pages-boundary/', import.meta.url).pathname.replace(/^\//, '').replaceAll('/', '\\')
+const evidence = new URL('../../.qa-artifacts/epub-pages-boundary/', import.meta.url).pathname.replace(/^\//, '').replaceAll('/', '\\')
 const paragraphs = Array.from({ length: 150 }, (_, index) => {
   const tag = `CHK-${String(index + 1).padStart(4, '0')}`
   const words = Array.from({ length: 62 }, (_, word) => ['quiet', 'river', 'window', 'morning', 'traveler', 'lantern', 'garden', 'remember'][((word + index * 3) % 8)]).join(' ')

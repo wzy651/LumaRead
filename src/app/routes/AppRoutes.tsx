@@ -8,6 +8,7 @@ import { RouteEffects } from './RouteEffects'
 import { ContinueReadingRoute } from './ContinueReadingRoute'
 
 const ReaderPage = lazy(() => import('../../features/reader/ReaderPage').then(({ ReaderPage: page }) => ({ default: page })))
+const LearningSettingsPage = lazy(() => import('../../features/learning/LearningSettingsPage').then(({ LearningSettingsPage: page }) => ({ default: page })))
 
 export function AppRoutes() {
   return (
@@ -16,6 +17,7 @@ export function AppRoutes() {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/library" element={<LibraryPage />} />
+        <Route path="/settings" element={<Suspense fallback={<div className="reader-message">Opening settings…</div>}><LearningSettingsPage /></Suspense>} />
         <Route path="/read" element={<ContinueReadingRoute />} />
         <Route path="/reader/:bookId" element={<Suspense fallback={<div aria-live="polite" className="reader-message">Opening your reader…</div>}><ReaderPage /></Suspense>} />
         <Route path="/review" element={<QuickReviewPage />} />

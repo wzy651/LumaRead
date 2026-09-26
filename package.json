@@ -16,7 +16,8 @@
     "tauri:android:dev": "tauri android dev",
     "tauri:android:build": "tauri android build",
     "test": "vitest run",
-    "test:browser": "node tests/browser/epub-pages-boundary.mjs"
+    "test:browser": "node tests/browser/epub-pages-boundary.mjs",
+    "test:reading-help": "node tests/browser/reading-help.mjs"
   },
   "dependencies": {
     "@tauri-apps/api": "2.9.0",

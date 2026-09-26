@@ -8,6 +8,9 @@ export default tseslint.config(
   {
     ignores: [
       'dist/**',
+      '.local-cache/**',
+      '.local-backups/**',
+      '.qa-artifacts/**',
       'src-tauri/target/**',
       '**/.gradle/**',
       '**/build/**',

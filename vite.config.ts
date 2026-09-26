@@ -30,6 +30,9 @@ export default defineConfig(({ mode }) => ({
   server: {
     watch: {
       ignored: [
+        '**/.local-cache/**',
+        '**/.local-backups/**',
+        '**/.qa-artifacts/**',
         '**/src-tauri/target/**',
         '**/src-tauri/gen/android/**/.gradle/**',
         '**/src-tauri/gen/android/**/build/**',

@@ -1,0 +1,35 @@
+.lookup-content, .learning-settings { display: grid; gap: 14px; color: var(--color-text); font-family: var(--font-ui); font-size: 14px; line-height: 1.65; }
+.lookup-content p, .learning-settings p { margin: 0; }
+.lookup-heading { display: flex; gap: 12px; align-items: start; justify-content: space-between; }
+.lookup-heading h2 { margin: 0; font-family: var(--font-reading); font-size: 1.5rem; font-weight: 500; overflow-wrap: anywhere; }
+.lookup-heading button { flex: 0 0 auto; }
+.lookup-phonetic, .lookup-source, .lookup-muted { color: var(--color-text-muted); }
+.lookup-source { display: block; font-size: 12px; }
+.lookup-definition, .lookup-answer p, .learning-status { white-space: pre-wrap; overflow-wrap: anywhere; }
+.lookup-context { margin: 2px 0 0; padding: 12px 14px; border-left: 2px solid var(--color-accent, #596cff); background: var(--color-page); border-radius: 0 8px 8px 0; font-family: var(--font-reading); font-size: 15px; overflow-wrap: anywhere; }
+.lookup-content button, .learning-settings button, .pdf-selection-help button, .lookup-text-button { min-height: 44px; border: 1px solid var(--color-border); border-radius: 10px; padding: 8px 12px; background: var(--color-surface); color: var(--color-text); cursor: pointer; font: inherit; }
+.lookup-content button:hover, .learning-settings button:hover { background: var(--color-page); }
+.lookup-content button:disabled, .learning-settings button:disabled { opacity: .55; cursor: wait; }
+.lookup-help-actions, .learning-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.lookup-content .lookup-done { background: var(--color-action); color: var(--color-action-foreground); border-color: transparent; }
+.lookup-content .lookup-text-button, .lookup-text-button { border: 0; background: transparent; color: var(--color-accent, #596cff); padding-inline: 0; text-align: left; justify-self: start; }
+.lookup-answer { display: grid; gap: 10px; padding: 14px; border: 1px solid var(--color-border); border-radius: 12px; }
+.lookup-answer h3 { margin: 0; font-size: 13px; font-weight: 600; }
+.lookup-answer small, .lookup-footer small, .learning-settings small { color: var(--color-text-muted); font-size: 12px; }
+.lookup-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.lookup-previous { font-size: 13px; color: var(--color-text-muted); }
+.lookup-previous summary { cursor: pointer; padding-block: 8px; }
+.learning-settings label { display: grid; gap: 6px; }
+.learning-settings input, .learning-settings select { width: 100%; min-width: 0; min-height: 44px; box-sizing: border-box; padding: 10px 12px; border: 1px solid var(--color-border); border-radius: 8px; background: var(--color-page); color: var(--color-text); font: inherit; }
+.learning-status { padding: 12px; border-radius: 8px; background: var(--color-page); }
+.learning-page { min-height: 100dvh; background: var(--color-page); padding: 32px max(20px, env(safe-area-inset-left)); color: var(--color-text); }
+.learning-page__inner { max-width: 680px; margin: 0 auto; }
+.learning-page h1 { margin-block: 28px 12px; font-size: 28px; }
+.learning-page__card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 16px; padding: 24px; margin-block: 24px; }
+.learning-page__card h2 { font-size: 18px; }
+.learning-history { padding-left: 20px; }
+.learning-history li { padding-block: 10px; border-bottom: 1px solid var(--color-border); }
+.learning-history small { display: block; color: var(--color-text-muted); }
+.pdf-selection-help { position: fixed; z-index: 30; bottom: calc(32px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); }
+.home-learning-link { display: inline-flex; gap: 8px; align-items: center; min-height: 44px; color: var(--color-text-muted); font-size: 13px; }
+@media (max-width: 767px) { .lookup-help-actions button { flex: 1 1 auto; } .learning-page__card { padding: 18px; } .lookup-heading h2 { font-size: 1.25rem; } }

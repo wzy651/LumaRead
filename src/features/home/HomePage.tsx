@@ -1,4 +1,5 @@
 import { ThemeToggle } from '../../components/ui'
+import { Link } from 'react-router-dom'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { getDocumentRepository, getReadingActivityRepository } from '../../storage'
 import { HomeReadingService, type HomeReadingViewModel } from './home-reading-service'
@@ -34,6 +35,7 @@ export function HomePage() {
             <p className="home-intro__greeting">Good evening</p>
             <h1>Pick up where you left off.</h1>
             <p>A quiet chapter is waiting, whenever you are ready.</p>
+            <Link className="home-learning-link" to="/settings">阅读帮助与解释服务设置 →</Link>
           </div>
 
           <div className="home-dashboard">

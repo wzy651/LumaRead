@@ -1,0 +1,57 @@
+# 阅读帮助：点词、原句与语境
+
+本轮在 `D:\Codex_product\LumaRead` 的 `codex/learning-reader-20260926` 分支开发。
+未修改其他 worktree，也未改动系统环境变量、用户书库或应用安装目录。
+
+## 使用
+
+1. 从本工作区启动 `npm run tauri:dev`，或使用本工作区重新构建的程序。旧工作区和旧安装包不会自动更新。
+2. 导入 TXT、EPUB、DOCX 或有文字层的 PDF。点击正文英文单词，查看离线中文释义、词形及原句。
+3. 选中短语或句子后点击工具条的“理解”；键盘可按 `Ctrl+Shift+L`。PDF 原版布局选择后有“理解所选文字”入口。
+4. 需要 AI 时，在首页“阅读帮助与解释服务设置”或查词卡片“解释服务设置”中填写 API Base URL、模型 ID 和 API Key。
+5. 点击“这里是什么意思”“原句翻译”或“Simple English”才发送请求。默认解释简短，`Explain more` 才请求详细结构说明。
+6. “懂了，继续读”、关闭按钮或 Esc 关闭卡片。Esc 在嵌入设置时先返回卡片，再关闭卡片，不直接退出 Reader。
+
+支持兼容 Chat Completions 的服务，以及本机 Ollama `/api/chat`。模型 ID 由用户按服务商账户/本机安装情况填写，不自动猜测。
+例如 DeepSeek API Base URL 为 `https://api.deepseek.com`，可兼容包含 `/v1` 的服务地址；也支持输入完整 `/chat/completions` 端点。
+本机 Ollama 可用 `http://localhost:11434`；远程地址必须 HTTPS。
+
+## 隐私、成本与数据
+
+- 本地英汉词典不发出远程请求，不需要 API Key。离线词库并不覆盖所有专名、俚语或词形，未命中会明确提示。
+- API Key 仅保留当前应用会话内存，不写入 localStorage、IndexedDB、日志或 Git。重启后重新填写。更改服务地址/协议会清空表单密钥，防止发送给错误服务。
+- AI 仅收到所选文本（最多 600 字符）与当前原句/局部语境（最多 1600 字符），不发送书名、完整书籍、查询历史或能力画像。
+- 测试连接使用固定测试句，可能产生少量服务商用量。没有 API Key 时不会伪造 AI 结果。
+- 查询保存在独立 `lumaread-learning` IndexedDB v1，记录文本、时间、来源、原句和重复查询；不会改动既有文档数据库版本或迁移用户书库。
+- 查词不自动加入复习。只有显式“加入学习”才将该表达标为 learning，可以撤销。首页复习仍是已有原型，尚未接入 FSRS。
+- 查询记录位于二级设置页，最多展示最近 20 条，不在首页制造任务压力。
+- AI 内容以纯文本显示；取消、切换查询、离开阅读时不应用过期响应。网络失败不会阻断离线词义。
+
+## 实现边界
+
+- `src/features/learning/`：词典、服务配置与 Provider、选词/选句、查询仓储与面板。
+- `src-tauri/src/reading_context.rs`：受限原生 HTTP 通道，HTTPS/本机 HTTP、禁止重定向、请求并发及大小限制、超时和取消；不放宽前端 CSP。
+- `public/dictionary/`：ECDICT 筛选词库，按词首分片读取；来源见 `THIRD_PARTY_NOTICES.md`。
+- Reader 保留原有正文 DOM、分页、标注与内部链接；点击链接/高亮优先原功能，不抢占文本选区。
+- 扫描 PDF 没有文字层，暂不支持点词或 OCR。PDF 的局部语境按文字层顺序提取，多栏/复杂版面可能不可靠，可切 Reading View 或选中完整句子。
+- 内容筛选、能力画像、FSRS、云同步、安全持久密钥库不在本轮实现范围。
+
+## 验证与备份
+
+```powershell
+npm run typecheck
+npm run test
+npm run lint -- --max-warnings=0
+npm run build
+npm run test:reading-help
+# 检查生产静态资源，而非 Vite 开发模块：
+$env:READING_HELP_PREVIEW = '1'
+npm run test:reading-help
+Remove-Item Env:READING_HELP_PREVIEW
+cargo test --manifest-path src-tauri/Cargo.toml --lib
+```
+
+浏览器测试使用合成书籍和本机 HTTP 契约测试服务，不调用真实付费模型。测试证据保存在项目内 `.qa-artifacts/reading-help/`，不提交 Git。
+开发前完整 Git bundle 位于 `.local-backups/before-learning-20260926.bundle`；阶段及最终备份也仅保存在该项目内目录。不包含 API Key 和用户书库。
+
+Windows 原生 UI 与 Android 实机验证须单独记录，不把浏览器模拟尺寸或 Rust HTTP 单测当作原生点击验收。

@@ -131,6 +131,12 @@ try {
   await page.goto(`${base}/settings`); await page.getByRole('heading', { name: '阅读帮助设置' }).waitFor(); await page.locator('.learning-history li').first().waitFor(); assert.equal(await page.getByLabel('API Key', { exact: true }).inputValue(), '')
   assert.deepEqual(errors, [])
   results.push('History persists after reload; API key is cleared')
+  await page.goto(base)
+  await page.getByRole('button', { name: '切换到深色主题', exact: true }).filter({ visible: true }).click()
+  await page.goto(txtUrl); await clickWord(page, 'bank')
+  assert.equal(await page.locator('html').getAttribute('data-theme'), 'dark')
+  await page.screenshot({ path: `${artifacts}/lookup-dark.png` }); await page.keyboard.press('Escape')
+  results.push('Dark theme lookup and reload persistence')
   await writeFile(`${artifacts}/${process.env.READING_HELP_PREVIEW ? 'production-' : ''}results.json`, JSON.stringify({ passed: results, model: 'Local HTTP contract fixture, not a live AI service', errors }, null, 2))
   console.log(JSON.stringify(results, null, 2))
 } catch (error) { if (browser) { const pages = browser.contexts().flatMap((context) => context.pages()); if (pages[0]) { await pages[0].screenshot({ path: `${artifacts}/failure.png` }); await writeFile(`${artifacts}/failure-events.json`, JSON.stringify(await pages[0].evaluate(() => window.__qaEvents), null, 2)) } } throw error }

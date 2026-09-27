@@ -9,14 +9,21 @@ import JSZip from 'jszip'
 
 const root = fileURLToPath(new URL('../../', import.meta.url))
 const artifacts = fileURLToPath(new URL('../../.qa-artifacts/reading-help/', import.meta.url))
+const projectTemp = fileURLToPath(new URL('../../.local-cache/tmp/', import.meta.url))
+await mkdir(projectTemp, { recursive: true })
+process.env.TEMP = projectTemp; process.env.TMP = projectTemp; process.env.TMPDIR = projectTemp
 const base = 'http://127.0.0.1:4329'
 const requests = [], errors = [], results = []
+let truncatedOnce = false
 const modelServer = createServer(async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', base); res.setHeader('Access-Control-Allow-Headers', 'authorization,content-type')
   if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return }
   let body = ''; for await (const chunk of req) body += chunk
-  const data = JSON.parse(body); requests.push({ model: data.model, messages: data.messages })
+  const data = JSON.parse(body); requests.push({ model: data.model, messages: data.messages, max_tokens: data.max_tokens })
   await delay(180)
+  if (JSON.parse(data.messages[1].content).selectedText === 'reluctantly' && !truncatedOnce) {
+    truncatedOnce = true; res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify({ choices: [{ finish_reason: 'length', message: { content: '', reasoning_content: 'TEST REASONING MUST NEVER BE SHOWN' } }] })); return
+  }
   const simplified = data.messages[0].content.includes('Rewrite')
   res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify({ choices: [{ message: { content: simplified ? 'She sat beside the river.' : '这里 bank 指河岸。of the river 说明它不是银行。' } }] }))
 })
@@ -54,8 +61,8 @@ async function importBook(page, name, mimeType, buffer) {
   await page.locator('.reader-prose, .pdf-text-layer').first().waitFor()
 }
 async function clickWord(page, word, scope = '.reader-prose') {
-  await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))))
-  const point = await page.locator(scope).first().evaluate((element, word) => {
+  await page.evaluate(() => document.fonts.ready)
+  const measure = () => page.locator(scope).first().evaluate((element, word) => {
     const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT)
     for (let node = walker.nextNode(); node; node = walker.nextNode()) {
       const index = node.textContent.indexOf(word); if (index < 0) continue
@@ -65,10 +72,24 @@ async function clickWord(page, word, scope = '.reader-prose') {
     }
     throw new Error(`No visible ${word}`)
   }, word)
+  // Resize updates CSS and React media-query state at different times. Require
+  // stable Range geometry before generating a physical tap, not a guessed delay
+  // or a repeated click that would hide a real hit-testing failure.
+  let point = await measure(), stable = 0
+  for (let attempt = 0; attempt < 30 && stable < 3; attempt++) {
+    await delay(50); const next = await measure()
+    stable = Math.abs(next.x - point.x) < .25 && Math.abs(next.y - point.y) < .25 ? stable + 1 : 0
+    point = next
+  }
+  assert.equal(stable, 3, 'Word geometry settled before input')
   if (page.viewportSize()?.width === 390) await page.touchscreen.tap(point.x, point.y)
   else await page.mouse.click(point.x, point.y)
   await page.getByRole('dialog', { name: 'Quick meaning', exact: true }).waitFor()
   await page.getByText('ECDICT · 离线词典 · 通用释义', { exact: true }).waitFor()
+  assert.equal(await page.locator('.lookup-context__selected').innerText(), word)
+  const active = await page.locator('.lookup-active-word span').first().boundingBox()
+  assert.ok(active && active.width > 0 && active.height > 0, 'Clicked word is visibly marked in the document')
+  assert.ok(active.x <= point.x && point.x <= active.x + active.width && active.y <= point.y && point.y <= active.y + active.height, 'Marker corresponds to the clicked word')
 }
 let browser
 const server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', ...(process.env.READING_HELP_PREVIEW ? ['preview'] : []), '--host', '127.0.0.1', '--port', '4329', '--strictPort'], { cwd: root, stdio: 'ignore', windowsHide: true })
@@ -87,10 +108,15 @@ try {
   await page.getByLabel('服务地址', { exact: true }).fill('http://127.0.0.1:4330/v1')
   await page.getByLabel('模型 ID', { exact: true }).fill('QA-contract-fixture')
   await page.getByLabel('API Key', { exact: true }).fill('TEST-ONLY-NOT-A-SECRET')
+  await page.getByRole('button', { name: '测试连接', exact: true }).click()
+  await page.getByRole('status').filter({ hasText: '连接成功' }).waitFor()
   await page.getByRole('button', { name: '保存设置', exact: true }).click()
   await page.getByRole('button', { name: '这里是什么意思', exact: true }).click()
   await page.getByText('这里 bank 指河岸。of the river 说明它不是银行。', { exact: true }).waitFor()
-  assert.equal(requests.length, 1); assert.equal(JSON.parse(requests[0].messages[1].content).selectedText, 'bank')
+  assert.equal(requests.length, 2); assert.equal(JSON.parse(requests[1].messages[1].content).selectedText, 'bank')
+  assert.equal(requests[1].max_tokens, 1200)
+  const answerBox = await page.locator('.lookup-answer').boundingBox(), panelBox = await page.getByRole('dialog').boundingBox()
+  assert.ok(answerBox.y >= panelBox.y && answerBox.y < panelBox.y + panelBox.height, 'AI result is brought into the panel viewport')
   await page.screenshot({ path: `${artifacts}/desktop-context.png` })
   await page.getByRole('button', { name: 'Simple English', exact: true }).click()
   await page.getByText('She sat beside the river.', { exact: true }).waitFor()
@@ -99,7 +125,16 @@ try {
   const stored = await page.evaluate(() => JSON.stringify(localStorage)); assert.ok(!stored.includes('TEST-ONLY'))
   await page.keyboard.press('Escape'); assert.equal(page.url(), txtUrl); assert.equal(await page.getByRole('dialog').count(), 0)
   results.push('TXT actual browser DOM hit-testing; offline dictionary; context request; simplify; explicit learning; Escape; session-only credential')
-  await clickWord(page, 'reluctantly'); assert.match(await page.locator('.lookup-definition').first().innerText(), /不情愿|勉强/); assert.equal(requests.length, 2)
+  assert.equal(await page.locator('.lookup-active-word').count(), 0)
+  await clickWord(page, 'reluctantly'); assert.match(await page.locator('.lookup-definition').first().innerText(), /不情愿|勉强/); assert.equal(requests.length, 3)
+  await page.getByRole('button', { name: '这里是什么意思', exact: true }).click()
+  await page.getByRole('alert').filter({ hasText: '输出额度' }).waitFor()
+  assert.ok(!(await page.locator('body').innerText()).includes('TEST REASONING'))
+  assert.equal(requests.length, 4)
+  await page.getByRole('button', { name: '重试', exact: true }).click()
+  await page.getByText('这里 bank 指河岸。of the river 说明它不是银行。', { exact: true }).waitFor()
+  assert.equal(requests.length, 5)
+  results.push('Successful connection test followed by actual reader request; truncated reasoning is actionable and retries only on click; result remains visible')
   await page.keyboard.press('Escape')
   await page.locator('.reader-prose p').first().evaluate((element) => { const range = document.createRange(); range.selectNodeContents(element); const selection = getSelection(); selection.removeAllRanges(); selection.addRange(range) })
   await page.keyboard.press('Control+Shift+L'); await page.getByRole('dialog', { name: 'Quick meaning', exact: true }).waitFor(); assert.match(await page.locator('.lookup-heading').innerText(), /river/)

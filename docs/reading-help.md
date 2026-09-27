@@ -12,6 +12,16 @@
 5. 点击“这里是什么意思”“原句翻译”或“Simple English”才发送请求。默认解释简短，`Explain more` 才请求详细结构说明。
 6. “懂了，继续读”、关闭按钮或 Esc 关闭卡片。Esc 在嵌入设置时先返回卡片，再关闭卡片，不直接退出 Reader。
 
+### 2026-09-28 修复版
+
+- 点词后，正文有临时淡紫底色/下划线，原句中同一处词也有标记；关闭卡片即消失，不产生永久高亮或学习任务。重复单词按实际选择位置标记，跨 span 的单词不会被拆开。
+- 卡片显示词库音标及“发音 / 慢速 / 停止”。Windows 安装版使用本机英语 SAPI 语音，不需要 API Key、不上传文字；浏览器和其他运行时使用系统 Web Speech 英语语音。未安装英语语音会明确提示，不自动安装或修改系统。
+- 若只有原形音标，会标出原形名称；读音始终朗读你选中的词。词库没有音标时不会使用 AI 编造。
+- 官方 DeepSeek 地址会明确发送非思考模式，普通解释 1200 / 详细解释 2400 token 上限。保留用户填写的模型，不偷偷更换模型。输出长度仍受简短阅读提示约束。
+- 余额不足、限流、输出额度耗尽、仅返回思考过程、超时各有反馈；失败不自动重复产生收费请求。读书内解释和设置页连接测试使用相同 provider。
+- 点击解释后，解释区域会进入浮窗可见区域；仅滚动浮窗，不改变阅读位置。关闭按钮保持可见。
+- API Key 仍仅保存在当前会话。重启后需重新填写；设置页底部“构建”可区分新旧程序。
+
 支持兼容 Chat Completions 的服务，以及本机 Ollama `/api/chat`。模型 ID 由用户按服务商账户/本机安装情况填写，不自动猜测。
 例如 DeepSeek API Base URL 为 `https://api.deepseek.com`，可兼容包含 `/v1` 的服务地址；也支持输入完整 `/chat/completions` 端点。
 本机 Ollama 可用 `http://localhost:11434`；远程地址必须 HTTPS。
@@ -30,7 +40,8 @@
 ## 实现边界
 
 - `src/features/learning/`：词典、服务配置与 Provider、选词/选句、查询仓储与面板。
-- `src-tauri/src/reading_context.rs`：受限原生 HTTP 通道，HTTPS/本机 HTTP、禁止重定向、请求并发及大小限制、超时和取消；不放宽前端 CSP。
+- `src-tauri/src/reading_context.rs`：受限原生 HTTP 通道，HTTPS/本机 HTTP、禁止重定向、请求并发及大小限制、超时和取消。前端 CSP 仅增加官方要求的 `ipc:` 与 `http://ipc.localhost`，没有开放远程通配地址。
+- `src-tauri/src/reading_speech.rs`：Windows 本机英语语音，限制 600 字符、普通/慢速两档、可取消，禁止将所选文本解释为 XML 或文件路径；不写系统语音设置。
 - `public/dictionary/`：ECDICT 筛选词库，按词首分片读取；来源见 `THIRD_PARTY_NOTICES.md`。
 - Reader 保留原有正文 DOM、分页、标注与内部链接；点击链接/高亮优先原功能，不抢占文本选区。
 - 扫描 PDF 没有文字层，暂不支持点词或 OCR。PDF 的局部语境按文字层顺序提取，多栏/复杂版面可能不可靠，可切 Reading View 或选中完整句子。

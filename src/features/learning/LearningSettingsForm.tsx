@@ -29,6 +29,7 @@ export function LearningSettingsForm({ onSaved }: { onSaved?: () => void }) {
     <label>接口协议<select value={settings.protocol} onChange={(event) => { setApiKey(''); setSettings((current) => ({ ...current, protocol: event.target.value as AISettings['protocol'], baseUrl: event.target.value === 'ollama' ? 'http://localhost:11434' : 'https://api.deepseek.com', model: '' })) }}><option value="compatible">兼容 Chat Completions 的服务</option><option value="ollama">本机 Ollama</option></select></label>
     <label>服务地址<input autoComplete="off" spellCheck={false} type="url" required value={settings.baseUrl} onChange={(event) => { setApiKey(''); setSettings((current) => ({ ...current, baseUrl: event.target.value })) }} placeholder="https://api.deepseek.com" /></label>
     <small>填写服务商的 API Base URL，可包含 /v1；请勿填写网页聊天地址。更换地址后请重新填写对应密钥。</small>
+    {settings.protocol === 'compatible' && /^https:\/\/api\.deepseek\.com(?:\/|$)/i.test(settings.baseUrl.trim()) && <small>DeepSeek 阅读解释采用非思考模式，优先简短、快速回答。测试连接与阅读内解释使用同一套请求配置。</small>}
     <label>模型 ID<input autoComplete="off" spellCheck={false} required value={settings.model} onChange={(event) => setSettings((current) => ({ ...current, model: event.target.value }))} placeholder="填写服务商提供或本机已安装的模型 ID" /></label>
     {settings.protocol === 'compatible' && <label>API Key<input autoComplete="off" spellCheck={false} type="password" value={apiKey} onChange={(event) => setApiKey(event.target.value)} placeholder="仅保存在本次应用会话" /></label>}
     <small>密钥不写入 localStorage、查询记录或备份。关闭应用后需要重新填写。测试连接会发送上面的测试句子，可能产生少量 API 用量。</small>

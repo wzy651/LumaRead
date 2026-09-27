@@ -2,6 +2,8 @@ export type HelpMode = 'context' | 'translate' | 'simplify' | 'detail'
 export interface ReadingExcerpt {
   text: string
   sentence: string
+  /** UTF-16 offset of the selected occurrence within sentence (not a first-match guess). */
+  selectionStart?: number
   resourceKey: string
   bookTitle: string
   sectionId?: string

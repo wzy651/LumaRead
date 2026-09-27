@@ -5,6 +5,9 @@ import { chromium } from 'playwright'
 import JSZip from 'jszip'
 
 const root = new URL('../../', import.meta.url).pathname.replace(/^\//, '').replaceAll('/', '\\')
+const projectTemp = `${root}\\.local-cache\\tmp`
+await mkdir(projectTemp, { recursive: true })
+process.env.TEMP = projectTemp; process.env.TMP = projectTemp; process.env.TMPDIR = projectTemp
 const port = 4317
 const baseUrl = `http://127.0.0.1:${port}`
 const evidence = new URL('../../.qa-artifacts/epub-pages-boundary/', import.meta.url).pathname.replace(/^\//, '').replaceAll('/', '\\')

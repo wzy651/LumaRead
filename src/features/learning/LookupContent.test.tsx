@@ -41,6 +41,16 @@ it('offers configuration without sending when no key exists', async () => {
   await mount(settings); await click('这里是什么意思')
   expect(settings).toHaveBeenCalledOnce(); expect(explain).not.toHaveBeenCalled()
 })
+it('labels the phonetic lemma honestly and highlights the selected context occurrence', async () => {
+  mocks.lookup.mockResolvedValue({ word: 'go', translation: '走', definition: '', phonetic: '[ɡəʊ]', source: 'ECDICT' })
+  const selected = { ...excerpt, text: 'went', sentence: 'She went and he went too.', selectionStart: 16 }
+  await act(async () => root.render(<LookupContent excerpt={selected} onClose={vi.fn()} onSettings={vi.fn()} />))
+  expect(container.querySelector('.lookup-phonetic')?.textContent).toBe('go 的音标 /ɡəʊ/')
+  const mark = container.querySelector('.lookup-context__selected')!
+  expect(mark.textContent).toBe('went'); expect(mark.previousSibling?.textContent).toBe('She went and he ')
+  expect(container.querySelector('[aria-label="播放英语发音"]')).not.toBeNull()
+  expect(container.querySelector('[aria-label="慢速播放英语发音"]')).not.toBeNull()
+})
 it('cancels previous requests, ignores stale answers, caches only the current excerpt and cancels on unmount', async () => {
   saveAISettings({ protocol: 'compatible', baseUrl: 'https://example.com', model: 'reader' }, 'test-only')
   const one = deferred<string>(), two = deferred<string>(), three = deferred<string>()

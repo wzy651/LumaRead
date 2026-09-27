@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useImperativeHandle, useLayoutEffect, useRef, useState, type Ref } from 'react'
 import { AdaptivePanel } from '../reader/components/AdaptivePanel'
-import { excerptAtPoint, excerptFromSelection, type ExcerptSource, type LocatedExcerpt } from './selection'
+import { excerptAtPoint, excerptFromSelection, rangeForText, type ExcerptSource, type LocatedExcerpt } from './selection'
+import { ActiveWordHighlight } from './ActiveWordHighlight'
 import { LookupContent } from './LookupContent'
 import { LearningSettingsForm } from './LearningSettingsForm'
 import './learning.css'
@@ -28,7 +29,9 @@ export function ReadingHelp({ ref, isMobile, otherPanelOpen, onOpen, onActiveCha
     openSelection() { const root = host.current?.closest<HTMLElement>('.reader-shell'); if (!root) return; const next = excerptFromSelection(root, latest.current.source); if (next) open(next) },
     openText(text, anchor) {
       const block = anchor.closest<HTMLElement>('[data-reader-block-id], .reader-prose p')
-      open({ anchor, rect: anchor.getBoundingClientRect(), excerpt: { ...latest.current.source, text: text.slice(0, 600), sentence: (block?.textContent ?? text).slice(0, 1600), blockId: block?.dataset.readerBlockId } })
+      const range = rangeForText(anchor, 0, anchor.textContent?.length ?? 0)
+      const before = document.createRange(); before.selectNodeContents(block ?? anchor); before.setEnd(anchor, 0)
+      open({ anchor, rect: anchor.getBoundingClientRect(), range, excerpt: { ...latest.current.source, text: text.slice(0, 600), sentence: (block?.textContent ?? text).slice(0, 1600), selectionStart: before.toString().length, blockId: block?.dataset.readerBlockId } })
     },
   }), [open, close])
   useEffect(() => {
@@ -64,6 +67,7 @@ export function ReadingHelp({ ref, isMobile, otherPanelOpen, onOpen, onActiveCha
     return () => document.removeEventListener('keydown', escape, true)
   }, [located, showSettings, close])
   return <><span ref={host} hidden />
+    {!otherPanelOpen && <ActiveWordHighlight located={located} />}
     {selection && !located && <div className="pdf-selection-help"><button type="button" onPointerDown={(event) => event.preventDefault()} onClick={() => open(selection)}>理解所选文字</button></div>}
     {located && !otherPanelOpen && <AdaptivePanel anchorElement={located.anchor} anchorRect={located.rect} isMobile={isMobile} label={showSettings ? '解释服务设置' : 'Quick meaning'} onClose={close} variant="dictionary">
       <div hidden={showSettings}><LookupContent key={`${located.excerpt.text}:${located.excerpt.sentence}`} excerpt={located.excerpt} onSettings={() => setShowSettings(true)} onClose={close} /></div>

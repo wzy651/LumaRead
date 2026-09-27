@@ -21,11 +21,11 @@ fn validate_endpoint(endpoint: &str) -> Result<reqwest::Url, String> {
 }
 
 async fn send_model_request(url: reqwest::Url, api_key: String, payload: serde_json::Value) -> Result<ContextResponse, String> {
-    let client = reqwest::Client::builder().timeout(Duration::from_secs(32)).connect_timeout(Duration::from_secs(10))
+    let client = reqwest::Client::builder().timeout(Duration::from_secs(60)).connect_timeout(Duration::from_secs(10))
         .redirect(reqwest::redirect::Policy::none()).build().map_err(|_| "Could not initialize the model connection.")?;
     let mut request = client.post(url).json(&payload);
     if !api_key.is_empty() { request = request.bearer_auth(api_key); }
-    let mut response = request.send().await.map_err(|_| "无法连接解释服务，请检查网络和服务地址。")?;
+    let mut response = request.send().await.map_err(|error| if error.is_timeout() { "context-timeout" } else { "context-network" })?;
     let status = response.status().as_u16();
     if !(200..300).contains(&status) { return Ok(ContextResponse { status, body: String::new() }); }
     let mut bytes = Vec::new();

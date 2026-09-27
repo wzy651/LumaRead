@@ -1,8 +1,16 @@
 .lookup-content, .learning-settings { display: grid; gap: 12px; color: var(--color-text); font-family: var(--font-ui); font-size: 14px; line-height: 1.65; }
 .lookup-content p, .learning-settings p { margin: 0; }
+.reader-panel--dictionary .reader-panel__topbar { position: sticky; top: 0; z-index: 2; background: var(--color-surface); }
 .lookup-heading { display: flex; gap: 12px; align-items: start; justify-content: space-between; }
 .lookup-heading h2 { margin: 0; font-family: var(--font-reading); font-size: 1.5rem; font-weight: 500; overflow-wrap: anywhere; }
 .lookup-heading button { flex: 0 0 auto; }
+.lookup-active-word { pointer-events: none; position: fixed; inset: 0; z-index: 20; }
+.lookup-active-word span { position: fixed; background: rgb(89 108 255 / 18%); border-bottom: 2px solid var(--color-accent, #596cff); border-radius: 3px; box-sizing: border-box; }
+.lookup-context__selected { background: rgb(89 108 255 / 18%); color: inherit; border-bottom: 1px solid var(--color-accent, #596cff); border-radius: 2px; }
+.lookup-pronunciation { display: grid; gap: 4px; }
+.lookup-pronunciation__buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+.lookup-pronunciation__buttons button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.lookup-pronunciation__buttons button[aria-pressed="true"] { border-color: var(--color-accent, #596cff); background: var(--color-page); }
 .lookup-heading__actions { display: flex; flex: 0 0 auto; gap: 4px; }
 .lookup-dictionary-meta { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 10px; }
 .lookup-context .lookup-source { margin-top: 6px; font-family: var(--font-ui); }

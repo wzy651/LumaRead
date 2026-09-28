@@ -1,5 +1,5 @@
 import { isTauriRuntime } from '../../platform/runtime'
-import { contextEndpoint, getSessionKey, readAISettings } from './settings'
+import { contextEndpoint, ensureContextConfigured, getSessionKey, readAISettings } from './settings'
 import type { AISettings, ContextProvider, HelpMode, ReadingExcerpt } from './types'
 
 const instructions: Record<HelpMode, string> = {
@@ -63,10 +63,12 @@ export function extractAnswer(value: unknown, protocol: AISettings['protocol']):
 }
 export class ConfiguredContextProvider implements ContextProvider {
   async explain(excerpt: ReadingExcerpt, mode: HelpMode, signal: AbortSignal): Promise<string> {
+    signal.throwIfAborted()
     const settings = readAISettings()
     const apiKey = settings.protocol === 'compatible' ? getSessionKey() : ''
     const endpoint = contextEndpoint(settings)
-    if (!settings.model || (settings.protocol === 'compatible' && !apiKey)) throw new Error('请先设置模型服务。本地查词不需要 API Key。')
+    if (!await ensureContextConfigured()) throw new Error('请先设置模型服务。本地查词不需要 API Key。')
+    signal.throwIfAborted()
     const body = contextRequestBody(settings, excerpt, mode)
     const controller = new AbortController()
     const cancel = () => controller.abort()

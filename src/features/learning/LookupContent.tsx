@@ -4,7 +4,7 @@ import { PronunciationControls } from './PronunciationControls'
 import { formatPhonetic } from './pronunciation'
 import { lookupDictionary } from './dictionary'
 import { ConfiguredContextProvider } from './context-provider'
-import { isContextConfigured } from './settings'
+import { ensureContextConfigured, isContextConfigured, refreshCredential } from './settings'
 import { recordLookup, setLearningStatus } from './repository'
 import type { DictionaryEntry, HelpMode, LearningTerm, ReadingExcerpt } from './types'
 
@@ -14,10 +14,12 @@ export function LookupContent({ excerpt, onSettings, onClose }: { excerpt: Readi
   const [term, setTerm] = useState<LearningTerm>(); const [previous, setPrevious] = useState<ReadingExcerpt>(); const [storageNotice, setStorageNotice] = useState('')
   const [mode, setMode] = useState<HelpMode>('context'); const [answer, setAnswer] = useState(''); const [aiError, setAiError] = useState(''); const [busy, setBusy] = useState(false)
   const [more, setMore] = useState(false); const [retry, setRetry] = useState(0)
+  const [configured, setConfigured] = useState(isContextConfigured)
   const controller = useRef<AbortController | undefined>(undefined)
   const saved = useRef<ReturnType<typeof recordLookup> | undefined>(undefined)
   const cache = useRef(new Map<HelpMode, string>())
   const answerRef = useRef<HTMLElement>(null)
+  useEffect(() => { let active = true; void refreshCredential().then(() => { if (active) setConfigured(isContextConfigured()) }).catch(() => undefined); return () => { active = false } }, [])
   useEffect(() => {
     if (!busy && !answer && !aiError) return
     const frame = requestAnimationFrame(() => {
@@ -38,17 +40,18 @@ export function LookupContent({ excerpt, onSettings, onClose }: { excerpt: Readi
     return () => { current = false }
   }, [excerpt, retry])
   useEffect(() => {
-    const changed = () => { cache.current.clear(); controller.current?.abort(); setBusy(false); setAnswer(''); setAiError('') }
+    const changed = () => { cache.current.clear(); controller.current?.abort(); setBusy(false); setAnswer(''); setAiError(''); setConfigured(isContextConfigured()) }
     window.addEventListener('learning-settings-changed', changed)
     return () => { controller.current?.abort(); window.removeEventListener('learning-settings-changed', changed) }
   }, [])
   async function explain(nextMode: HelpMode) {
-    if (!isContextConfigured()) { onSettings(); return }
     controller.current?.abort(); setMode(nextMode); setAiError(''); setAnswer('')
-    const cached = cache.current.get(nextMode)
-    if (cached) { setAnswer(cached); setBusy(false); return }
     const request = new AbortController(); controller.current = request; setBusy(true)
     try {
+      if (!await ensureContextConfigured()) { if (!request.signal.aborted) onSettings(); return }
+      if (request.signal.aborted) return
+      const cached = cache.current.get(nextMode)
+      if (cached) { setAnswer(cached); return }
       const result = await new ConfiguredContextProvider().explain(excerpt, nextMode, request.signal)
       if (!request.signal.aborted) { cache.current.set(nextMode, result); setAnswer(result) }
     } catch (error) { if (!request.signal.aborted) setAiError(error instanceof Error ? error.message : '解释暂时不可用，请重试。') }
@@ -72,7 +75,7 @@ export function LookupContent({ excerpt, onSettings, onClose }: { excerpt: Readi
     {entry && <><div className="lookup-dictionary-meta"><button className="lookup-text-button" type="button" onClick={() => setMore((value) => !value)}>{more ? '收起词典释义' : '更多词典释义'}</button><small className="lookup-source">ECDICT · 离线词典 · 通用释义</small></div>{more && entry.definition && <p className="lookup-definition" lang="en">{entry.definition}</p>}</>}
     <blockquote className="lookup-context" lang="en">{exactSelection ? <>{excerpt.sentence.slice(0, selectedStart)}<mark className="lookup-context__selected">{excerpt.text}</mark>{excerpt.sentence.slice(selectedStart + excerpt.text.length)}</> : excerpt.sentence}<small className="lookup-source">{excerpt.bookTitle}{excerpt.pageNumber ? ` · Page ${excerpt.pageNumber}` : ''}</small></blockquote>
     <div className="lookup-help-actions"><button type="button" onClick={() => { void explain('context') }}>这里是什么意思</button><button type="button" onClick={() => { void explain('translate') }}>原句翻译</button><button type="button" onClick={() => { void explain('simplify') }}>Simple English</button></div>
-    <small className="lookup-source">{isContextConfigured() ? 'AI 服务已就绪 · 点击上方按钮获取解释' : 'AI 尚未配置或本次会话密钥已清除 · 点击解释按钮可设置'}</small>
+    <small className="lookup-source">{configured ? 'AI 服务已就绪 · 点击上方按钮获取解释' : '点击解释按钮使用已保存的服务，或填写服务设置'}</small>
     {(busy || answer || aiError) && <section ref={answerRef} className="lookup-answer" aria-label={labels[mode]} aria-live="polite" aria-busy={busy}><h3>{labels[mode]}</h3>{busy ? <><p>正在理解原句…</p><button type="button" onClick={() => { controller.current?.abort(); setBusy(false) }}>取消</button></> : aiError ? <><p role="alert">{aiError}</p><div className="learning-actions"><button type="button" onClick={() => { void explain(mode) }}>重试</button><button type="button" onClick={onSettings}>检查服务设置</button></div></> : <p lang={mode === 'simplify' ? 'en' : 'zh-CN'}>{answer}</p>}{answer && <><small>AI 辅助解释 · 仅基于所选原文，可能有误</small>{mode !== 'detail' && <button className="lookup-text-button" type="button" onClick={() => { void explain('detail') }}>Explain more</button>}</>}</section>}
     {previous && (previous.sentence !== excerpt.sentence || previous.resourceKey !== excerpt.resourceKey) && <details className="lookup-previous"><summary>你之前见过这个表达</summary><p lang="en">{previous.sentence}</p><small>{previous.bookTitle}</small></details>}
     {storageNotice && <p className="lookup-muted" role="status">{storageNotice}</p>}

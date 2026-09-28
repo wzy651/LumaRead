@@ -21,11 +21,10 @@ export function MobileShortcuts() {
         <span className="home-shortcut__icon"><RotateCcw aria-hidden="true" size={20} strokeWidth={1.8} /></span>
         <span>Review</span>
       </Link>
-      <button className="home-shortcut home-shortcut--upcoming" disabled title="Stats — Coming soon" type="button">
+      <Link className="home-shortcut" to="/statistics">
         <span className="home-shortcut__icon"><BarChart3 aria-hidden="true" size={20} strokeWidth={1.8} /></span>
         <span>Stats</span>
-        <small>Soon</small>
-      </button>
+      </Link>
       <Link className="home-shortcut" to="/library">
         <span className="home-shortcut__icon"><Library aria-hidden="true" size={20} strokeWidth={1.8} /></span>
         <span>Library</span>

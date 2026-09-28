@@ -11,3 +11,7 @@ LumaRead bundles a filtered offline English–Chinese dictionary from [ECDICT](h
 - Transformation script: `scripts/build-dictionary.mjs`. Place the pinned upstream CSV and LICENSE in `.local-cache/dictionary/` and run `node scripts/build-dictionary.mjs` to reproduce. It performs no network download.
 
 The source data may contain imperfect, dated, specialist, or inconsistent definitions. LumaRead labels these as general dictionary meanings rather than context-specific conclusions.
+
+## Spaced repetition
+
+LumaRead uses [ts-fsrs](https://github.com/open-spaced-repetition/ts-fsrs) version 5.4.2 (MIT) for local review scheduling. Its original license is reproduced in `public/licenses/ts-fsrs.txt` and copied into production builds; no remote scheduling service or optimizer is used.

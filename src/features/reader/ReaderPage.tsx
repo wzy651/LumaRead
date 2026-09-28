@@ -31,6 +31,7 @@ import { AnnotationEditor } from './components/AnnotationEditor'
 import { HighlightsNotesPanel } from './components/HighlightsNotesPanel'
 
 import { ReadingHelp, type ReadingHelpHandle } from '../learning/ReadingHelp'
+import { ReadingSessionTracker } from '../learning/ReadingSessionTracker'
 
 type ActivePanel =
   | { anchor: HTMLElement; kind: 'settings' }
@@ -124,6 +125,7 @@ export function ReaderPage() {
   const layout = resolveReaderLayout(settings, isMobile)
 
   return <div className="reader-shell">
+    <ReadingSessionTracker resourceKey={resourceKey} bookTitle={currentBook.title} />
     <ReaderChrome backLabel={hasSearchHistory ? 'Back to previous reading position' : 'Back to Library'} bookTitle={currentBook.title} chapterLabel={readerChapter.chapterLabel} chromeRef={chromeRef} isMobile={isMobile} onBack={backFromSearch} onMore={(anchor) => openChromePanel('more', anchor)} onSettings={(anchor) => openChromePanel('settings', anchor)} onToggleBookmark={() => { clearSelection(); setEditor(undefined); void toggleBookmark() }} onOpenBookmarks={openBookmarks} onOpenSearch={openSearch} bookmarkActive={Boolean(currentBookmark())} visible={visible} />
     <ReaderChromeRevealZone onReveal={reveal} visible={visible} />
     <ReadingHelp ref={helpRef} resourceKey={resourceKey} bookTitle={currentBook.title} sectionId={readerChapter.chapterLabel} isMobile={isMobile} otherPanelOpen={Boolean(activePanel || bookmarksAnchor || searchAnchor || annotationsAnchor || editor)} onOpen={closePanels} onActiveChange={setHelpOpen} />

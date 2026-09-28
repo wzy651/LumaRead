@@ -40,7 +40,7 @@ export function HomeNavigation({ placement }: HomeNavigationProps) {
     { icon: BookOpen, label: 'Reading', to: '/read' },
     { icon: RotateCcw, label: 'Quick review', to: '/review' },
     { icon: Library, label: 'Library', to: '/library' },
-    { icon: BarChart3, label: 'Stats', upcoming: true },
+    { icon: BarChart3, label: 'Stats', to: '/statistics' },
   ]
 
   return (

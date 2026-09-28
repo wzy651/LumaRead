@@ -8,7 +8,7 @@ pub struct ContextRequests(Mutex<HashMap<String, tokio::task::AbortHandle>>);
 #[derive(Serialize)]
 pub struct ContextResponse { status: u16, body: String }
 
-fn validate_endpoint(endpoint: &str) -> Result<reqwest::Url, String> {
+pub(crate) fn validate_endpoint(endpoint: &str) -> Result<reqwest::Url, String> {
     let url = reqwest::Url::parse(endpoint).map_err(|_| "Invalid service address.")?;
     let local = matches!(url.host_str(), Some("localhost" | "127.0.0.1" | "[::1]" | "::1"));
     if !(url.scheme() == "https" || (url.scheme() == "http" && local))
@@ -39,11 +39,14 @@ async fn send_model_request(url: reqwest::Url, api_key: String, payload: serde_j
 
 // A bounded model-only transport. It never writes credentials or reading text to disk.
 #[tauri::command]
-pub async fn request_reading_context(request_id: String, endpoint: String, api_key: String, body: String, requests: State<'_, ContextRequests>) -> Result<ContextResponse, String> {
+pub async fn request_reading_context(app: tauri::AppHandle, request_id: String, endpoint: String, api_key: String, body: String, requests: State<'_, ContextRequests>, credentials: State<'_, crate::reading_credentials::CredentialAccess>) -> Result<ContextResponse, String> {
     if request_id.is_empty() || request_id.len() > 80 || body.len() > 24_000 || api_key.len() > 4096 || api_key.contains(['\r', '\n']) {
         return Err("Invalid or oversized reading request.".into());
     }
     let url = validate_endpoint(&endpoint)?;
+    let api_key = if api_key.is_empty() && !url.path().ends_with("/api/chat") {
+        crate::reading_credentials::key_for(&app, &endpoint, &credentials)?.unwrap_or_default()
+    } else { api_key };
     let payload: serde_json::Value = serde_json::from_str(&body).map_err(|_| "Invalid request format.")?;
     if !payload["model"].is_string() || !payload["messages"].is_array() || payload["stream"] != false {
         return Err("Only non-streaming model requests are supported.".into());

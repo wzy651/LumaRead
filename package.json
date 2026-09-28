@@ -17,7 +17,8 @@
     "tauri:android:build": "tauri android build",
     "test": "vitest run",
     "test:browser": "node tests/browser/epub-pages-boundary.mjs",
-    "test:reading-help": "node tests/browser/reading-help.mjs"
+    "test:reading-help": "node tests/browser/reading-help.mjs",
+    "test:learning-review": "node tests/browser/learning-review.mjs"
   },
   "dependencies": {
     "@tauri-apps/api": "2.9.0",
@@ -28,7 +29,8 @@
     "pdfjs-dist": "5.4.624",
     "react": "19.3.0",
     "react-dom": "19.3.0",
-    "react-router-dom": "7.18.3"
+    "react-router-dom": "7.18.3",
+    "ts-fsrs": "5.4.2"
   },
   "overrides": {
     "@xmldom/xmldom": "0.8.15"

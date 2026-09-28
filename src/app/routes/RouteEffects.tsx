@@ -5,6 +5,7 @@ function getPageTitle(pathname: string): string {
   if (pathname.startsWith('/reader/')) return 'Reading — LumaRead'
   if (pathname === '/review') return 'Quick Review — LumaRead'
   if (pathname === '/settings') return '阅读帮助设置 — LumaRead'
+  if (pathname === '/statistics') return '阅读足迹 — LumaRead'
   if (pathname === '/session-summary') return 'Reading Saved — LumaRead'
   return 'LumaRead'
 }

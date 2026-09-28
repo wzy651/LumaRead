@@ -31,6 +31,23 @@
 .lookup-previous { font-size: 13px; color: var(--color-text-muted); }
 .lookup-previous summary { cursor: pointer; padding-block: 8px; }
 .learning-settings label { display: grid; gap: 6px; }
+.learning-settings .learning-check { display: flex; align-items: center; gap: 10px; min-height: 44px; }
+.learning-settings .learning-check input { width: 20px; height: 20px; min-height: 20px; accent-color: var(--color-action); flex-shrink: 0; }
+.stats-inner { max-width: 800px; }
+.stats-header { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+.stats-eyebrow { margin-top: 48px; color: var(--color-text-muted); font-size: 13px; }
+.stats-metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-block: 24px; }
+.stats-metrics > div { padding: 20px; border-radius: 12px; background: var(--color-surface); border: 1px solid var(--color-border); }
+.stats-metrics dt { color: var(--color-text-muted); font-size: 13px; }
+.stats-metrics dd { margin: 10px 0 0; font-size: clamp(17px, 3vw, 24px); overflow-wrap: anywhere; }
+.stats-list { list-style: none; padding: 0; }
+.stats-list li { padding-block: 16px; border-bottom: 1px solid var(--color-border); overflow-wrap: anywhere; }
+.stats-list li:last-child { border-bottom: 0; }
+.stats-list small { display: block; color: var(--color-text-muted); margin-block: 8px; }
+.stats-list p { line-height: 1.7; }
+.stats-period button, .stats-list button { min-height: 44px; padding: 8px 12px; border: 1px solid var(--color-border); border-radius: 10px; background: var(--color-surface); color: var(--color-text); cursor: pointer; }
+.stats-period button[aria-pressed="true"] { background: var(--color-accent-subtle); border-color: var(--color-action); }
+.learning-page a { overflow-wrap: anywhere; }
 .learning-settings input, .learning-settings select { width: 100%; min-width: 0; min-height: 44px; box-sizing: border-box; padding: 10px 12px; border: 1px solid var(--color-border); border-radius: 8px; background: var(--color-page); color: var(--color-text); font: inherit; }
 .learning-status { padding: 12px; border-radius: 8px; background: var(--color-page); }
 .learning-page { min-height: 100dvh; background: var(--color-page); padding: 32px max(20px, env(safe-area-inset-left)); color: var(--color-text); }

@@ -12,7 +12,7 @@ export function englishVoice(voices: SpeechSynthesisVoice[]) {
 export async function pronounce(text: string, speed: PronunciationSpeed, signal: AbortSignal): Promise<void> {
   signal.throwIfAborted()
   if (!text.trim() || text.length > 600) throw new Error('请先选择一个词或较短的句子。')
-  if (getRuntime() === 'tauri-windows') {
+  if (getRuntime() !== 'browser') {
     const { invoke } = await import('@tauri-apps/api/core')
     signal.throwIfAborted()
     const requestId = crypto.randomUUID()
@@ -21,7 +21,7 @@ export async function pronounce(text: string, speed: PronunciationSpeed, signal:
     try { await invoke('speak_reading_text', { requestId, text, slow: speed === 'slow' }); signal.throwIfAborted() }
     catch (error) {
       if (signal.aborted) throw new DOMException('Cancelled', 'AbortError')
-      throw new Error(error === 'speech-no-english-voice' ? '系统没有可用的英语语音。请在 Windows 语言设置中添加英语语音后重试。' : '系统朗读未能完成，请检查音量和声音输出设备后重试。', { cause: error })
+      throw new Error(error === 'speech-no-english-voice' ? '系统没有可用的离线英语语音。请在系统文字转语音设置中下载英语语音后重试。' : '系统朗读未能完成，请检查音量和声音输出设备后重试。', { cause: error })
     } finally { signal.removeEventListener('abort', cancel) }
     return
   }

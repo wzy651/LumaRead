@@ -3,6 +3,8 @@ node_modules/
 .local-cache/
 .qa-artifacts/
 dist/
+dist-android/
+src-tauri/gen/android/**/.kotlin/
 coverage/
 src-tauri/target/
 src-tauri/gen/android/.gradle/

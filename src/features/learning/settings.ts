@@ -5,7 +5,7 @@ const key = 'lumaread-context-settings:v1'
 let sessionKey = ''
 let sessionEndpoint = ''
 let rememberedEndpoint = ''
-export function canRememberCredential() { return getRuntime() === 'tauri-windows' }
+export function canRememberCredential() { return getRuntime() !== 'browser' }
 export async function refreshCredential(settings = readAISettings()) {
   if (!canRememberCredential() || settings.protocol !== 'compatible') return false
   const endpoint = contextEndpoint(settings)
@@ -47,6 +47,7 @@ export function contextEndpoint(settings: AISettings) {
   let url: URL
   try { url = new URL(settings.baseUrl.trim()) } catch { throw new Error('请输入完整的服务地址，例如 https://api.deepseek.com。') }
   const local = ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)
+  if (getRuntime() === 'tauri-android' && url.protocol === 'http:') throw new Error('手机版的模型服务请使用 HTTPS 地址。localhost 指手机本身，不是你的电脑。')
   if (!(url.protocol === 'https:' || (url.protocol === 'http:' && local)) || url.username || url.password || url.search || url.hash) throw new Error('服务地址须使用 HTTPS；本机 localhost 可使用 HTTP。地址不能包含密钥、参数或用户信息。')
   const path = settings.protocol === 'ollama' ? '/api/chat' : '/chat/completions'
   const basePath = url.pathname.replace(/\/+$/, '')

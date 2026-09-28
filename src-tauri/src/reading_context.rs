@@ -1,11 +1,14 @@
+#[cfg(not(target_os = "android"))]
 use std::{collections::HashMap, sync::Mutex, time::Duration};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
+#[cfg(not(target_os = "android"))]
 use tauri::State;
 
 #[derive(Default)]
+#[cfg(not(target_os = "android"))]
 pub struct ContextRequests(Mutex<HashMap<String, tokio::task::AbortHandle>>);
 
-#[derive(Serialize)]
+#[derive(Deserialize, Serialize)]
 pub struct ContextResponse { status: u16, body: String }
 
 pub(crate) fn validate_endpoint(endpoint: &str) -> Result<reqwest::Url, String> {
@@ -20,6 +23,7 @@ pub(crate) fn validate_endpoint(endpoint: &str) -> Result<reqwest::Url, String> 
     Ok(url)
 }
 
+#[cfg(not(target_os = "android"))]
 async fn send_model_request(url: reqwest::Url, api_key: String, payload: serde_json::Value) -> Result<ContextResponse, String> {
     let client = reqwest::Client::builder().timeout(Duration::from_secs(60)).connect_timeout(Duration::from_secs(10))
         .redirect(reqwest::redirect::Policy::none()).build().map_err(|_| "Could not initialize the model connection.")?;
@@ -39,6 +43,7 @@ async fn send_model_request(url: reqwest::Url, api_key: String, payload: serde_j
 
 // A bounded model-only transport. It never writes credentials or reading text to disk.
 #[tauri::command]
+#[cfg(not(target_os = "android"))]
 pub async fn request_reading_context(app: tauri::AppHandle, request_id: String, endpoint: String, api_key: String, body: String, requests: State<'_, ContextRequests>, credentials: State<'_, crate::reading_credentials::CredentialAccess>) -> Result<ContextResponse, String> {
     if request_id.is_empty() || request_id.len() > 80 || body.len() > 24_000 || api_key.len() > 4096 || api_key.contains(['\r', '\n']) {
         return Err("Invalid or oversized reading request.".into());
@@ -64,11 +69,24 @@ pub async fn request_reading_context(app: tauri::AppHandle, request_id: String, 
 }
 
 #[tauri::command]
+#[cfg(not(target_os = "android"))]
 pub fn cancel_context_request(request_id: String, requests: State<'_, ContextRequests>) {
     if let Ok(mut active) = requests.0.lock() { if let Some(task) = active.remove(&request_id) { task.abort(); } }
 }
 
-#[cfg(test)]
+#[cfg(target_os = "android")]
+#[tauri::command]
+pub async fn request_reading_context(app: tauri::AppHandle, request_id: String, endpoint: String, api_key: String, body: String) -> Result<ContextResponse, String> {
+    let endpoint = validate_endpoint(&endpoint)?.to_string();
+    crate::mobile_reading::call(&app, "requestContext", serde_json::json!({ "requestId": request_id, "endpoint": endpoint, "apiKey": api_key, "body": body })).await
+}
+#[cfg(target_os = "android")]
+#[tauri::command]
+pub async fn cancel_context_request(app: tauri::AppHandle, request_id: String) -> Result<(), String> {
+    crate::mobile_reading::call(&app, "cancelContext", serde_json::json!({ "requestId": request_id })).await
+}
+
+#[cfg(all(test, not(target_os = "android")))]
 mod tests {
     use super::{send_model_request, validate_endpoint, ContextResponse};
     use std::{io::{Read, Write}, net::TcpListener, thread, time::Duration};

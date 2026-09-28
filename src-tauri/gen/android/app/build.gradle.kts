@@ -15,6 +15,17 @@ val tauriProperties = Properties().apply {
 
 android {
     compileSdk = 36
+    buildToolsVersion = "35.0.0"
+    signingConfigs {
+        if (System.getenv("LUMAREAD_ANDROID_KEYSTORE") != null) {
+            create("localDistribution") {
+                storeFile = file(System.getenv("LUMAREAD_ANDROID_KEYSTORE"))
+                storePassword = System.getenv("LUMAREAD_ANDROID_STORE_PASSWORD")
+                keyAlias = "lumaread"
+                keyPassword = System.getenv("LUMAREAD_ANDROID_STORE_PASSWORD")
+            }
+        }
+    }
     namespace = "com.lumaread.reader"
     defaultConfig {
         manifestPlaceholders["usesCleartextTraffic"] = "false"
@@ -37,6 +48,7 @@ android {
             }
         }
         getByName("release") {
+            signingConfigs.findByName("localDistribution")?.let { signingConfig = it }
             isMinifyEnabled = true
             proguardFiles(
                 *fileTree(".") { include("**/*.pro") }

@@ -32,11 +32,23 @@ it('never reuses the stored key after changing providers and clears both session
   expect(await ensureContextConfigured()).toBe(false)
   await clearRememberedCredential(); expect(getSessionKey()).toBe(''); expect(native.endpoint).toBe('')
 })
-it('does not use plaintext persistence as fallback on browser or Android', async () => {
-  for (const platform of ['browser', 'tauri-android']) {
+it('does not use plaintext persistence as fallback in the browser', async () => {
+  for (const platform of ['browser']) {
     native.platform = platform; saveAISettings(settings, 'fixture')
     expect(await rememberCredential(settings, 'fixture', true)).toBe(false)
     clearSessionKey(); expect(await ensureContextConfigured()).toBe(false)
   }
   expect(native.invoke).not.toHaveBeenCalled()
+})
+it('uses the Android native vault without putting the credential in web storage', async () => {
+  native.platform = 'tauri-android'; saveAISettings(settings, 'fixture-android')
+  expect(await rememberCredential(settings, 'fixture-android', true)).toBe(true)
+  clearSessionKey(); expect(await ensureContextConfigured()).toBe(true)
+  expect(JSON.stringify(localStorage)).not.toContain('fixture-android')
+  await clearRememberedCredential(); expect(await ensureContextConfigured()).toBe(false)
+})
+it('explains Android HTTPS restrictions before starting a doomed cleartext request', () => {
+  native.platform = 'tauri-android'
+  expect(() => contextEndpoint({ protocol: 'ollama', baseUrl: 'http://localhost:11434', model: 'fixture' })).toThrow('localhost 指手机本身')
+  expect(contextEndpoint({ protocol: 'ollama', baseUrl: 'https://example.test', model: 'fixture' })).toBe('https://example.test/api/chat')
 })

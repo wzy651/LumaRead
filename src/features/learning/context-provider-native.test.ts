@@ -57,5 +57,5 @@ it('uses native Windows speech and cancels only that utterance on close', async 
 })
 it('shows a useful native missing-English-voice message', async () => {
   bridge.invoke.mockRejectedValue('speech-no-english-voice')
-  await expect(pronounce('bank', 'normal', new AbortController().signal)).rejects.toThrow('添加英语语音')
+  await expect(pronounce('bank', 'normal', new AbortController().signal)).rejects.toThrow('下载英语语音')
 })

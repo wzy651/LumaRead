@@ -1,10 +1,13 @@
+#[cfg(not(target_os = "android"))]
 use std::sync::{
     atomic::{AtomicBool, Ordering},
     Arc, Mutex,
 };
+#[cfg(not(target_os = "android"))]
 use tauri::State;
 
 #[derive(Default)]
+#[cfg(not(target_os = "android"))]
 pub struct ReadingSpeech(Mutex<Option<(String, Arc<AtomicBool>)>>);
 
 fn validate_text(id: &str, text: &str) -> Result<(), String> {
@@ -20,6 +23,7 @@ fn validate_text(id: &str, text: &str) -> Result<(), String> {
 }
 
 #[tauri::command]
+#[cfg(not(target_os = "android"))]
 pub async fn speak_reading_text(
     request_id: String,
     text: String,
@@ -48,6 +52,7 @@ pub async fn speak_reading_text(
 }
 
 #[tauri::command]
+#[cfg(not(target_os = "android"))]
 pub fn cancel_reading_speech(request_id: String, speech: State<'_, ReadingSpeech>) {
     if let Ok(mut active) = speech.0.lock() {
         if active.as_ref().is_some_and(|(id, _)| *id == request_id) {
@@ -58,7 +63,19 @@ pub fn cancel_reading_speech(request_id: String, speech: State<'_, ReadingSpeech
     }
 }
 
-#[cfg(not(windows))]
+#[cfg(target_os = "android")]
+#[tauri::command]
+pub async fn speak_reading_text(app: tauri::AppHandle, request_id: String, text: String, slow: bool) -> Result<(), String> {
+    validate_text(&request_id, &text)?;
+    crate::mobile_reading::call(&app, "speak", serde_json::json!({ "requestId": request_id, "text": text, "slow": slow })).await
+}
+#[cfg(target_os = "android")]
+#[tauri::command]
+pub async fn cancel_reading_speech(app: tauri::AppHandle, request_id: String) -> Result<(), String> {
+    crate::mobile_reading::call(&app, "cancelSpeech", serde_json::json!({ "requestId": request_id })).await
+}
+
+#[cfg(all(not(windows), not(target_os = "android")))]
 fn play(_: &str, _: bool, _: &AtomicBool) -> Result<(), String> {
     Err("speech-unavailable".into())
 }

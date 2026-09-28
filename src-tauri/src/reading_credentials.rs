@@ -1,19 +1,25 @@
 //! Credentials are never returned to the WebView. Windows DPAPI binds ciphertext
-//! to the current Windows user; other platforms deliberately have no plaintext fallback.
+//! to the current Windows user; Android delegates to its Keystore-backed native vault.
+#[cfg(not(target_os = "android"))]
 use serde::{Deserialize, Serialize};
+#[cfg(not(target_os = "android"))]
 use std::{path::{Path, PathBuf}, sync::Mutex};
+#[cfg(not(target_os = "android"))]
 use tauri::{Manager, State};
 
 #[derive(Default)]
+#[cfg(not(target_os = "android"))]
 pub struct CredentialAccess(Mutex<()>);
 
 #[derive(Serialize, Deserialize)]
+#[cfg(not(target_os = "android"))]
 struct Credential { endpoint: String, key: String }
 
 fn canonical(endpoint: &str) -> Result<String, String> {
     Ok(crate::reading_context::validate_endpoint(endpoint)?.to_string())
 }
 
+#[cfg(not(target_os = "android"))]
 fn path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     app.path().app_local_data_dir().map(|dir| dir.join("reading-credential.dpapi"))
         .map_err(|_| "无法打开应用的安全凭据目录。".into())
@@ -37,9 +43,10 @@ fn crypt(input: &[u8], encrypt: bool) -> Result<Vec<u8>, String> {
         Ok(bytes)
     }
 }
-#[cfg(not(windows))]
+#[cfg(all(not(windows), not(target_os = "android")))]
 fn crypt(_: &[u8], _: bool) -> Result<Vec<u8>, String> { Err("此平台暂不支持安全记住密钥，请使用会话密钥。".into()) }
 
+#[cfg(not(target_os = "android"))]
 fn save_at(file: &Path, endpoint: &str, key: &str) -> Result<(), String> {
     if key.trim().is_empty() || key.len() > 4096 || key.contains(['\r', '\n']) { return Err("密钥为空或格式不正确。".into()); }
     let credential = Credential { endpoint: canonical(endpoint)?, key: key.trim().into() };
@@ -59,6 +66,7 @@ fn save_at(file: &Path, endpoint: &str, key: &str) -> Result<(), String> {
     result.map_err(|_| "未能安全保存密钥；本次会话仍可使用。".into())
 }
 
+#[cfg(not(target_os = "android"))]
 fn read_at(file: &Path, endpoint: &str) -> Result<Option<String>, String> {
     let endpoint = canonical(endpoint)?;
     if !file.exists() { return Ok(None); }
@@ -70,25 +78,46 @@ fn read_at(file: &Path, endpoint: &str) -> Result<Option<String>, String> {
     Ok((credential.endpoint == endpoint).then_some(credential.key))
 }
 
+#[cfg(not(target_os = "android"))]
 pub fn key_for(app: &tauri::AppHandle, endpoint: &str, access: &CredentialAccess) -> Result<Option<String>, String> {
     let _guard = access.0.lock().map_err(|_| "凭据暂时忙碌，请重试。")?;
     read_at(&path(app)?, endpoint)
 }
 
 #[tauri::command]
+#[cfg(not(target_os = "android"))]
 pub fn reading_credential_status(app: tauri::AppHandle, endpoint: String, access: State<'_, CredentialAccess>) -> Result<bool, String> {
     Ok(key_for(&app, &endpoint, &access)?.is_some())
 }
 #[tauri::command]
+#[cfg(not(target_os = "android"))]
 pub fn save_reading_credential(app: tauri::AppHandle, endpoint: String, api_key: String, access: State<'_, CredentialAccess>) -> Result<(), String> {
     let _guard = access.0.lock().map_err(|_| "凭据暂时忙碌，请重试。")?;
     save_at(&path(&app)?, &endpoint, &api_key)
 }
 #[tauri::command]
+#[cfg(not(target_os = "android"))]
 pub fn clear_reading_credential(app: tauri::AppHandle, access: State<'_, CredentialAccess>) -> Result<(), String> {
     let _guard = access.0.lock().map_err(|_| "凭据暂时忙碌，请重试。")?;
     let file = path(&app)?;
     match std::fs::remove_file(file) { Ok(()) => Ok(()), Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()), Err(_) => Err("无法清除已保存的密钥，请重试。".into()) }
+}
+
+#[cfg(target_os = "android")]
+#[tauri::command]
+pub async fn reading_credential_status(app: tauri::AppHandle, endpoint: String) -> Result<bool, String> {
+    let result: serde_json::Value = crate::mobile_reading::call(&app, "credentialStatus", serde_json::json!({ "endpoint": canonical(&endpoint)? })).await?;
+    Ok(result["available"].as_bool().unwrap_or(false))
+}
+#[cfg(target_os = "android")]
+#[tauri::command]
+pub async fn save_reading_credential(app: tauri::AppHandle, endpoint: String, api_key: String) -> Result<(), String> {
+    crate::mobile_reading::call(&app, "saveCredential", serde_json::json!({ "endpoint": canonical(&endpoint)?, "apiKey": api_key })).await
+}
+#[cfg(target_os = "android")]
+#[tauri::command]
+pub async fn clear_reading_credential(app: tauri::AppHandle) -> Result<(), String> {
+    crate::mobile_reading::call(&app, "clearCredential", serde_json::json!({})).await
 }
 
 #[cfg(all(test, windows))]

@@ -14,4 +14,4 @@ export interface DictionaryEntry { word: string; phonetic: string; translation: 
 export interface AISettings { protocol: 'compatible' | 'ollama'; baseUrl: string; model: string }
 export interface ContextProvider { explain(excerpt: ReadingExcerpt, mode: HelpMode, signal: AbortSignal): Promise<string> }
 export interface LookupRecord extends ReadingExcerpt { id: string; normalized: string; createdAt: string }
-export interface LearningTerm { normalized: string; text: string; status: 'unknown' | 'learning' | 'recognized' | 'active'; lookups: number; lastSeen: string; example: ReadingExcerpt }
+export interface LearningTerm { normalized: string; text: string; status: 'unknown' | 'learning' | 'recognized' | 'active'; lookups: number; lastSeen: string; example: ReadingExcerpt; candidateExcluded?: boolean }

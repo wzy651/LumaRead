@@ -39,17 +39,46 @@ export async function recordLookup(excerpt: ReadingExcerpt): Promise<{ term: Lea
     request.onsuccess = () => {
       const previous = request.result as LearningTerm | undefined
       const createdAt = new Date().toISOString()
-      const term: LearningTerm = { normalized, text: excerpt.text, status: previous?.status ?? 'unknown', lookups: (previous?.lookups ?? 0) + 1, lastSeen: createdAt, example: excerpt }
+      const term: LearningTerm = { ...previous, normalized, text: excerpt.text, status: previous?.status ?? 'unknown', lookups: (previous?.lookups ?? 0) + 1, lastSeen: createdAt, example: excerpt }
       store.put(term)
       tx.objectStore('lookups').put({ ...excerpt, id: crypto.randomUUID(), normalized, createdAt } satisfies LookupRecord)
       finish({ term, previous: previous?.example })
     }
   })
 }
+function writeLearningStatus(tx: IDBTransaction, term: LearningTerm, status: LearningTerm['status']) {
+  const updated = { ...term, status }
+  if (status === 'unknown') updated.candidateExcluded = true
+  if (status === 'learning') delete updated.candidateExcluded
+  tx.objectStore('terms').put(updated)
+  if (status !== 'learning') tx.objectStore('reviewCards').delete(term.normalized)
+}
 export async function setLearningStatus(text: string, status: LearningTerm['status']): Promise<void> {
   return learningTransaction(['terms', 'reviewCards'], 'readwrite', (tx, finish) => {
     const store = tx.objectStore('terms'), request = store.get(normalizeTerm(text))
-    request.onsuccess = () => { const term = request.result as LearningTerm | undefined; if (term) store.put({ ...term, status }); if (status !== 'learning') tx.objectStore('reviewCards').delete(normalizeTerm(text)); finish(undefined) }
+    request.onsuccess = () => { const term = request.result as LearningTerm | undefined; if (term) writeLearningStatus(tx, term, status); else if (status !== 'learning') tx.objectStore('reviewCards').delete(normalizeTerm(text)); finish(undefined) }
+  })
+}
+/** Accepts a displayed recommendation only while the user's latest choice still permits it. */
+export async function acceptLearningCandidate(normalized: string): Promise<'added' | 'stale'> {
+  return learningTransaction(['terms', 'reviewCards', 'reviewLogs'], 'readwrite', (tx, finish) => {
+    const read = tx.objectStore('terms').get(normalized)
+    read.onsuccess = () => {
+      const term = read.result as LearningTerm | undefined
+      if (!term || term.status !== 'unknown' || term.candidateExcluded) { finish('stale'); return }
+      const card = tx.objectStore('reviewCards').getKey(normalized)
+      card.onsuccess = () => {
+        if (card.result !== undefined) { finish('stale'); return }
+        // Old logs have no normalized index. Scan without changing the DB version or records.
+        const logs = tx.objectStore('reviewLogs').openCursor()
+        logs.onsuccess = () => {
+          const cursor = logs.result
+          if (cursor?.value?.normalized === normalized) { finish('stale'); return }
+          if (cursor) { cursor.continue(); return }
+          writeLearningStatus(tx, term, 'learning'); finish('added')
+        }
+      }
+    }
   })
 }
 export async function recentLookups(): Promise<LookupRecord[]> {

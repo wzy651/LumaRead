@@ -43,6 +43,11 @@
 .stats-list { list-style: none; padding: 0; }
 .stats-list li { padding-block: 16px; border-bottom: 1px solid var(--color-border); overflow-wrap: anywhere; }
 .stats-list li:last-child { border-bottom: 0; }
+.learning-candidates { text-align: left; }
+.learning-candidates h2 { font-size: 18px; }
+.learning-candidates button { font: inherit; }
+.learning-candidates button:disabled { opacity: .65; cursor: default; }
+.learning-candidates li[aria-busy="true"] button { cursor: wait; }
 .stats-list small { display: block; color: var(--color-text-muted); margin-block: 8px; }
 .stats-list p { line-height: 1.7; }
 .stats-period button, .stats-list button { min-height: 44px; padding: 8px 12px; border: 1px solid var(--color-border); border-radius: 10px; background: var(--color-surface); color: var(--color-text); cursor: pointer; }
@@ -50,7 +55,7 @@
 .learning-page a { overflow-wrap: anywhere; }
 .learning-settings input, .learning-settings select { width: 100%; min-width: 0; min-height: 44px; box-sizing: border-box; padding: 10px 12px; border: 1px solid var(--color-border); border-radius: 8px; background: var(--color-page); color: var(--color-text); font: inherit; }
 .learning-status { padding: 12px; border-radius: 8px; background: var(--color-page); }
-.learning-page { min-height: 100dvh; background: var(--color-page); padding: 32px max(20px, env(safe-area-inset-left)); color: var(--color-text); }
+.learning-page { min-height: 100dvh; background: var(--color-page); padding: calc(32px + var(--safe-area-top)) max(20px, var(--safe-area-right)) calc(32px + var(--safe-area-bottom)) max(20px, var(--safe-area-left)); color: var(--color-text); }
 .learning-page__inner { max-width: 680px; margin: 0 auto; }
 .learning-page h1 { margin-block: 28px 12px; font-size: 28px; }
 .learning-page__card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 16px; padding: 24px; margin-block: 24px; }

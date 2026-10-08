@@ -1,5 +1,6 @@
 import { normalizeTerm } from './dictionary'
-import type { LearningTerm, LookupRecord, ReadingExcerpt } from './types'
+import type { LearningTerm, LookupRecord, ReadingExcerpt, VocabularyAction } from './types'
+import { applyVocabularyAction, createLearningTerm, getVocabularyState, serializeLearningTerm } from './vocabulary-state'
 
 export const learningDatabase = 'lumaread-learning'
 export function openLearningDatabase(): Promise<IDBDatabase> {
@@ -39,33 +40,45 @@ export async function recordLookup(excerpt: ReadingExcerpt): Promise<{ term: Lea
     request.onsuccess = () => {
       const previous = request.result as LearningTerm | undefined
       const createdAt = new Date().toISOString()
-      const term: LearningTerm = { ...previous, normalized, text: excerpt.text, status: previous?.status ?? 'unknown', lookups: (previous?.lookups ?? 0) + 1, lastSeen: createdAt, example: excerpt }
+      if (previous && !getVocabularyState(previous)) { tx.abort(); return }
+      const fields = { normalized, text: excerpt.text, lookups: (previous?.lookups ?? 0) + 1, lastSeen: createdAt, example: excerpt }
+      const term = previous ? serializeLearningTerm({ ...previous, ...fields }) : createLearningTerm(fields)
       store.put(term)
       tx.objectStore('lookups').put({ ...excerpt, id: crypto.randomUUID(), normalized, createdAt } satisfies LookupRecord)
       finish({ term, previous: previous?.example })
     }
   })
 }
-function writeLearningStatus(tx: IDBTransaction, term: LearningTerm, status: LearningTerm['status']) {
-  const updated = { ...term, status }
-  if (status === 'unknown') updated.candidateExcluded = true
-  if (status === 'learning') delete updated.candidateExcluded
-  tx.objectStore('terms').put(updated)
-  if (status !== 'learning') tx.objectStore('reviewCards').delete(term.normalized)
+export type VocabularyUpdateResult = { outcome: 'saved'; term: LearningTerm } | { outcome: 'stale' | 'missing' }
+export async function readLearningTerm(normalized: string): Promise<LearningTerm | undefined> {
+  return learningTransaction(['terms'], 'readonly', (tx, finish) => {
+    const request = tx.objectStore('terms').get(normalized)
+    request.onsuccess = () => finish(request.result as LearningTerm | undefined)
+  })
 }
-export async function setLearningStatus(text: string, status: LearningTerm['status']): Promise<void> {
-  return learningTransaction(['terms', 'reviewCards'], 'readwrite', (tx, finish) => {
-    const store = tx.objectStore('terms'), request = store.get(normalizeTerm(text))
-    request.onsuccess = () => { const term = request.result as LearningTerm | undefined; if (term) writeLearningStatus(tx, term, status); else if (status !== 'learning') tx.objectStore('reviewCards').delete(normalizeTerm(text)); finish(undefined) }
+export async function updateVocabularyState(normalized: string, action: VocabularyAction, expectedRevision: number): Promise<VocabularyUpdateResult> {
+  return learningTransaction(['terms'], 'readwrite', (tx, finish) => {
+    const store = tx.objectStore('terms'), request = store.get(normalized)
+    request.onsuccess = () => {
+      const term = request.result as LearningTerm | undefined
+      if (!term) { finish({ outcome: 'missing' }); return }
+      const state = getVocabularyState(term)
+      if (!state || !Number.isSafeInteger(expectedRevision) || expectedRevision < 0 || state.revision !== expectedRevision) { finish({ outcome: 'stale' }); return }
+      try {
+        const updated = applyVocabularyAction(term, action)
+        store.put(updated); finish({ outcome: 'saved', term: updated })
+      } catch { tx.abort() }
+    }
   })
 }
 /** Accepts a displayed recommendation only while the user's latest choice still permits it. */
-export async function acceptLearningCandidate(normalized: string): Promise<'added' | 'stale'> {
+export async function acceptLearningCandidate(normalized: string, expectedRevision: number): Promise<'added' | 'stale'> {
   return learningTransaction(['terms', 'reviewCards', 'reviewLogs'], 'readwrite', (tx, finish) => {
     const read = tx.objectStore('terms').get(normalized)
     read.onsuccess = () => {
       const term = read.result as LearningTerm | undefined
-      if (!term || term.status !== 'unknown' || term.candidateExcluded) { finish('stale'); return }
+      const state = getVocabularyState(term)
+      if (!term || !state || state.proficiency !== 'unknown' || state.learningEnabled || term.candidateExcluded || !Number.isSafeInteger(expectedRevision) || expectedRevision < 0 || state.revision !== expectedRevision) { finish('stale'); return }
       const card = tx.objectStore('reviewCards').getKey(normalized)
       card.onsuccess = () => {
         if (card.result !== undefined) { finish('stale'); return }
@@ -75,7 +88,7 @@ export async function acceptLearningCandidate(normalized: string): Promise<'adde
           const cursor = logs.result
           if (cursor?.value?.normalized === normalized) { finish('stale'); return }
           if (cursor) { cursor.continue(); return }
-          writeLearningStatus(tx, term, 'learning'); finish('added')
+          try { tx.objectStore('terms').put(applyVocabularyAction(term, { type: 'enroll' })); finish('added') } catch { tx.abort() }
         }
       }
     }

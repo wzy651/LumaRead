@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
+import { setFixtureLearningStatus, reviewQueueCandidates as getReviewQueue } from '../../../tests/helpers/vocabulary'
 import { IDBFactory } from 'fake-indexeddb'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { learningDatabase, learningTransaction, openLearningDatabase, recordLookup, setLearningStatus } from './repository'
+import { learningDatabase, learningTransaction, openLearningDatabase, recordLookup } from './repository'
 import { ActiveReadingClock, saveReadingSession } from './reading-sessions'
 import { readLearningData, summarizeLearning } from './statistics'
-import { getReviewQueue, reviewPrompt, submitReview } from '../review/review-service'
+import { reviewPrompt, submitReview } from '../review/review-service'
 
 const example = { text: 'bank', sentence: 'She sat on the bank of the river.', selectionStart: 15, resourceKey: 'imported:fixture', bookTitle: 'Fixture story', sectionId: 'one' }
 beforeEach(() => { vi.stubGlobal('indexedDB', new IDBFactory()); localStorage.clear() })
@@ -43,7 +44,7 @@ describe('gentle FSRS review', () => {
     expect(data.reviews).toEqual([])
   })
   it('creates an enrolled card, schedules with FSRS, and persists one feedback even with concurrent duplicate submits', async () => {
-    await recordLookup(example); await setLearningStatus('bank', 'learning')
+    await recordLookup(example); await setFixtureLearningStatus('bank', 'learning')
     const now = new Date('2026-09-28T10:00:00.000Z'), [candidate] = await getReviewQueue(now)
     const responses = await Promise.all([submitReview(candidate, 3, 'same-attempt', now), submitReview(candidate, 3, 'same-attempt', now)])
     expect(responses).toEqual(['saved', 'saved'])
@@ -55,18 +56,18 @@ describe('gentle FSRS review', () => {
     expect(await getReviewQueue(new Date('2026-10-28T10:00:00.000Z'))).toHaveLength(1)
   })
   it('does not grade skipped expressions or feedback after removal; stale cards cannot overwrite newer scheduling', async () => {
-    await recordLookup(example); await setLearningStatus('bank', 'learning')
+    await recordLookup(example); await setFixtureLearningStatus('bank', 'learning')
     const [candidate] = await getReviewQueue()
     expect((await readLearningData()).reviews).toHaveLength(0)
     await submitReview(candidate, 4, 'one')
     expect(await submitReview(candidate, 1, 'two')).toBe('stale')
-    await setLearningStatus('bank', 'unknown')
+    await setFixtureLearningStatus('bank', 'unknown')
     expect(await submitReview(candidate, 1, 'three')).toBe('stale')
     expect((await readLearningData()).reviews).toHaveLength(1)
     expect(await getReviewQueue()).toEqual([])
   })
   it('caps a quiet round at five and keeps source-specific occurrence in cloze', async () => {
-    for (let index = 0; index < 12; index++) { await recordLookup({ ...example, text: `term${index}` }); await setLearningStatus(`term${index}`, 'learning') }
+    for (let index = 0; index < 12; index++) { await recordLookup({ ...example, text: `term${index}` }); await setFixtureLearningStatus(`term${index}`, 'learning') }
     expect(await getReviewQueue()).toHaveLength(5)
     expect(await getReviewQueue(new Date(), 999)).toHaveLength(8)
     const { term } = await recordLookup(example)

@@ -1,7 +1,8 @@
 import type { LocalReadingSession } from './reading-sessions'
 import type { LearningTerm, LookupRecord, ReadingExcerpt } from './types'
+import { getVocabularyState } from './vocabulary-state'
 
-export interface LearningCandidate { normalized: string; text: string; excerpt: ReadingExcerpt; score: number; reasons: string[]; lastLookupAt: string }
+export interface LearningCandidate { normalized: string; text: string; excerpt: ReadingExcerpt; score: number; reasons: string[]; lastLookupAt: string; stateRevision: number }
 export interface CandidateSelectionData { terms: readonly LearningTerm[]; lookups: readonly LookupRecord[]; reviewCardKeys: readonly string[]; reviews: readonly { normalized: string }[] }
 const dayMs = 86_400_000
 const cleanSentence = (text: string) => text.normalize('NFKC').replace(/\s+/g, ' ').trim()
@@ -41,7 +42,8 @@ export function selectLearningCandidates(data: CandidateSelectionData, { now = n
   }
   const candidates: LearningCandidate[] = []
   for (const term of data.terms) {
-    if (!term || term.status !== 'unknown' || term.candidateExcluded || typeof term.text !== 'string' || !term.text.trim() || term.text.length > 80 || term.text.trim().split(/\s+/).length > 6 || blocked.has(term.normalized)) continue
+    const state = getVocabularyState(term)
+    if (!term || !state || state.proficiency !== 'unknown' || state.learningEnabled || term.candidateExcluded || typeof term.text !== 'string' || !term.text.trim() || term.text.length > 80 || term.text.trim().split(/\s+/).length > 6 || blocked.has(term.normalized)) continue
     const group = history.get(term.normalized), displayed = scoped?.get(term.normalized)
     if (!group || group.count < 2 || (scoped && !displayed)) continue
     const excerpt = displayed ?? group.latest
@@ -51,7 +53,7 @@ export function selectLearningCandidates(data: CandidateSelectionData, { now = n
     if (group.contexts.size >= 2) reasons.push(`在 ${group.contexts.size} 个不同语境中查询过`)
     if (group.resources.size >= 2) reasons.push(`来自 ${group.resources.size} 本 / 篇内容`)
     if (recent) reasons.push('最近 7 天查询过')
-    candidates.push({ normalized: term.normalized, text: term.text, excerpt, score, reasons, lastLookupAt: group.latest.createdAt })
+    candidates.push({ normalized: term.normalized, text: term.text, excerpt, score, reasons, lastLookupAt: group.latest.createdAt, stateRevision: state.revision })
   }
   return candidates.sort((a, b) => b.score - a.score || Date.parse(b.lastLookupAt) - Date.parse(a.lastLookupAt) || compareText(a.normalized, b.normalized)).slice(0, 5)
 }

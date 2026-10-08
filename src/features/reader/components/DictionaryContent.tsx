@@ -13,13 +13,6 @@ interface DictionaryContentProps {
   onToggleMore: () => void
 }
 
-const statusLabels: Record<VocabularyItem['status'], string> = {
-  unknown: '暂未学习',
-  learning: '正在熟悉',
-  recognized: '阅读中可识别',
-  active: '可主动使用',
-}
-
 export function DictionaryContent({ acknowledged, addedToLearning, item, lookupCount, moreVisible, onAcknowledge, onAddToLearning, onToggleMore }: DictionaryContentProps) {
   return (
     <div className="dictionary-content">
@@ -37,7 +30,6 @@ export function DictionaryContent({ acknowledged, addedToLearning, item, lookupC
 
       {moreVisible && (
         <div className="dictionary-content__more" lang="zh-CN">
-          <p><span>当前状态</span>{statusLabels[item.status]}</p>
           <p><span>累计查询</span>{lookupCount} 次</p>
           <p className="dictionary-content__reassurance">查词只帮助你继续阅读，不会自动生成复习任务。</p>
         </div>

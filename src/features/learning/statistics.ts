@@ -3,6 +3,7 @@ import { waitForSessionWrites, type LocalReadingSession } from './reading-sessio
 import type { LearningTerm, LookupRecord } from './types'
 import type { LocalReviewLog } from '../review/review-service'
 import { selectLearningCandidates } from './candidate-selection'
+import { getVocabularyState } from './vocabulary-state'
 
 export interface LocalLearningData { sessions: LocalReadingSession[]; lookups: LookupRecord[]; terms: LearningTerm[]; reviews: LocalReviewLog[]; reviewCardKeys: string[] }
 export async function readLearningData(): Promise<LocalLearningData> {
@@ -23,6 +24,6 @@ export function summarizeLearning(data: LocalLearningData, since = '', now = new
   const lookups = data.lookups.filter((item) => item.createdAt >= since)
   const reviews = data.reviews.filter((item) => item.reviewedAt >= since).sort((a, b) => b.reviewedAt.localeCompare(a.reviewedAt))
   const suggestions = selectLearningCandidates(data, { now })
-  return { sessions, lookups, reviews, suggestions, activeMs: sessions.reduce((total, item) => total + item.activeMs, 0), resources: new Set(sessions.map((item) => item.resourceKey)).size, learning: data.terms.filter((item) => item.status === 'learning') }
+  return { sessions, lookups, reviews, suggestions, activeMs: sessions.reduce((total, item) => total + item.activeMs, 0), resources: new Set(sessions.map((item) => item.resourceKey)).size, learning: data.terms.filter((item) => getVocabularyState(item)?.learningEnabled) }
 }
 export function readingDuration(ms: number) { if (ms < 60_000) return '不到 1 分钟'; const minutes = Math.floor(ms / 60_000); return minutes < 60 ? `${minutes} 分钟` : `${Math.floor(minutes / 60)} 小时 ${minutes % 60} 分钟` }

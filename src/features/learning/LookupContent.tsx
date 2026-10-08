@@ -5,7 +5,10 @@ import { formatPhonetic } from './pronunciation'
 import { lookupDictionary } from './dictionary'
 import { ConfiguredContextProvider } from './context-provider'
 import { ensureContextConfigured, isContextConfigured, refreshCredential } from './settings'
-import { recordLookup, setLearningStatus } from './repository'
+import { readLearningTerm, recordLookup } from './repository'
+import { getVocabularyState } from './vocabulary-state'
+import { VocabularyDetails } from './VocabularyDetails'
+import { useVocabularyActions } from './use-vocabulary-actions'
 import type { DictionaryEntry, HelpMode, LearningTerm, ReadingExcerpt } from './types'
 
 const labels: Record<HelpMode, string> = { context: '这里是什么意思', translate: '原句翻译', simplify: 'Simple English', detail: '进一步理解' }
@@ -19,6 +22,8 @@ export function LookupContent({ excerpt, onSettings, onClose }: { excerpt: Readi
   const saved = useRef<ReturnType<typeof recordLookup> | undefined>(undefined)
   const cache = useRef(new Map<HelpMode, string>())
   const answerRef = useRef<HTMLElement>(null)
+  const vocabulary = useVocabularyActions(setTerm, async () => { if (term) setTerm(await readLearningTerm(term.normalized)) })
+  const vocabularyState = getVocabularyState(term)
   useEffect(() => { let active = true; void refreshCredential().then(() => { if (active) setConfigured(isContextConfigured()) }).catch(() => undefined); return () => { active = false } }, [])
   useEffect(() => {
     if (!busy && !answer && !aiError) return
@@ -57,13 +62,6 @@ export function LookupContent({ excerpt, onSettings, onClose }: { excerpt: Readi
     } catch (error) { if (!request.signal.aborted) setAiError(error instanceof Error ? error.message : '解释暂时不可用，请重试。') }
     finally { if (controller.current === request) setBusy(false) }
   }
-  async function learn() {
-    try {
-      await saved.current
-      const status = term?.status === 'learning' ? 'unknown' : 'learning'
-      await setLearningStatus(excerpt.text, status); setTerm((current) => current ? { ...current, status } : current); setStorageNotice('')
-    } catch { setStorageNotice('暂时无法保存学习状态，请稍后重试。') }
-  }
   const selectedStart = excerpt.selectionStart ?? excerpt.sentence.indexOf(excerpt.text)
   const exactSelection = selectedStart >= 0 && excerpt.sentence.slice(selectedStart, selectedStart + excerpt.text.length) === excerpt.text
   const lemma = entry && entry.word.toLowerCase() !== excerpt.text.toLowerCase()
@@ -79,7 +77,9 @@ export function LookupContent({ excerpt, onSettings, onClose }: { excerpt: Readi
     {(busy || answer || aiError) && <section ref={answerRef} className="lookup-answer" aria-label={labels[mode]} aria-live="polite" aria-busy={busy}><h3>{labels[mode]}</h3>{busy ? <><p>正在理解原句…</p><button type="button" onClick={() => { controller.current?.abort(); setBusy(false) }}>取消</button></> : aiError ? <><p role="alert">{aiError}</p><div className="learning-actions"><button type="button" onClick={() => { void explain(mode) }}>重试</button><button type="button" onClick={onSettings}>检查服务设置</button></div></> : <p lang={mode === 'simplify' ? 'en' : 'zh-CN'}>{answer}</p>}{answer && <><small>AI 辅助解释 · 仅基于所选原文，可能有误</small>{mode !== 'detail' && <button className="lookup-text-button" type="button" onClick={() => { void explain('detail') }}>Explain more</button>}</>}</section>}
     {previous && (previous.sentence !== excerpt.sentence || previous.resourceKey !== excerpt.resourceKey) && <details className="lookup-previous"><summary>你之前见过这个表达</summary><p lang="en">{previous.sentence}</p><small>{previous.bookTitle}</small></details>}
     {storageNotice && <p className="lookup-muted" role="status">{storageNotice}</p>}
-    <div className="learning-actions"><button className="lookup-done" type="button" onClick={onClose}>懂了，继续读</button>{term && <button type="button" aria-pressed={term.status === 'learning'} onClick={() => { void learn() }}>{term.status === 'learning' ? '已加入学习 · 撤销' : '加入学习'}</button>}</div>
+    {vocabulary.notice && <p className="lookup-muted" role="status">{vocabulary.notice}</p>}
+    <div className="learning-actions"><button className="lookup-done" type="button" onClick={onClose}>懂了，继续读</button>{term && vocabularyState && <button type="button" disabled={vocabulary.busy} aria-pressed={vocabularyState.learningEnabled} onClick={() => { void vocabulary.perform(term, { type: vocabularyState.learningEnabled ? 'unenroll' : 'enroll' }) }}>{vocabularyState.learningEnabled ? '移出学习' : '加入学习'}</button>}</div>
+    {term && <VocabularyDetails term={term} busy={vocabulary.busy} onAction={vocabulary.perform} />}
     <div className="lookup-footer"><small>查询不会自动加入复习</small></div>
   </div>
 }

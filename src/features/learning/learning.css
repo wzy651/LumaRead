@@ -65,4 +65,11 @@
 .learning-history small { display: block; color: var(--color-text-muted); }
 .pdf-selection-help { position: fixed; z-index: 30; bottom: calc(32px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); }
 .home-learning-link { display: inline-flex; gap: 8px; align-items: center; min-height: 44px; color: var(--color-text-muted); font-size: 13px; }
+.vocabulary-details summary, .vocabulary-records > summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; font-weight: 500; }
+.vocabulary-details__body { display: grid; gap: 12px; padding-block: 8px; }
+.vocabulary-details__body dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 8px 16px; margin: 0; }
+.vocabulary-details__body dt { color: var(--color-text-muted); }
+.vocabulary-details__body dd { margin: 0; overflow-wrap: anywhere; }
+.vocabulary-details__body p { margin: 0; }
+.records-pagination button { min-height: 44px; padding: 8px 12px; background: var(--color-surface); color: var(--color-text); border: 1px solid var(--color-border); border-radius: 10px; }
 @media (max-width: 767px) { .lookup-help-actions button { flex: 1 1 auto; } .learning-page__card { padding: 18px; } .lookup-heading h2 { font-size: 1.25rem; } }

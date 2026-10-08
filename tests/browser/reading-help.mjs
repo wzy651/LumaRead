@@ -121,7 +121,7 @@ try {
   await page.getByRole('button', { name: 'Simple English', exact: true }).click()
   await page.getByText('She sat beside the river.', { exact: true }).waitFor()
   await page.getByRole('button', { name: '加入学习', exact: true }).click()
-  await page.getByRole('button', { name: '已加入学习 · 撤销', exact: true }).waitFor()
+  await page.getByRole('button', { name: '移出学习', exact: true }).waitFor()
   const stored = await page.evaluate(() => JSON.stringify(localStorage)); assert.ok(!stored.includes('TEST-ONLY'))
   await page.keyboard.press('Escape'); assert.equal(page.url(), txtUrl); assert.equal(await page.getByRole('dialog').count(), 0)
   results.push('TXT actual browser DOM hit-testing; offline dictionary; context request; simplify; explicit learning; Escape; session-only credential')

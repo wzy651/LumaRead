@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react'
 import { acceptLearningCandidate } from './repository'
 import type { LearningCandidate } from './candidate-selection'
 import type { LearningTerm } from './types'
+import { getVocabularyState } from './vocabulary-state'
 import './learning.css'
 
 function CandidateRow({ candidate, term, onAccepted }: { candidate: LearningCandidate; term?: LearningTerm; onAccepted: () => void }) {
@@ -10,13 +11,14 @@ function CandidateRow({ candidate, term, onAccepted }: { candidate: LearningCand
   const [error, setError] = useState('')
   const inFlight = useRef(false), mounted = useRef(true)
   useEffect(() => { mounted.current = true; return () => { mounted.current = false } }, [])
-  const unavailable = !term || term.candidateExcluded || (term.status !== 'unknown' && term.status !== 'learning')
-  const label = unavailable || result === 'stale' ? '状态已更新' : result === 'added' || term.status === 'learning' ? '已加入学习' : saving ? '正在加入…' : '加入学习'
+  const state = getVocabularyState(term)
+  const unavailable = !term || !state || term.candidateExcluded || state.proficiency !== 'unknown' || (!state.learningEnabled && state.revision !== candidate.stateRevision)
+  const label = unavailable || result === 'stale' ? '状态已更新' : result === 'added' || state?.learningEnabled ? '已加入学习' : saving ? '正在加入…' : '加入学习'
   async function accept() {
     if (inFlight.current || label !== '加入学习') return
     inFlight.current = true; setSaving(true); setError('')
     try {
-      const outcome = await acceptLearningCandidate(candidate.normalized)
+      const outcome = await acceptLearningCandidate(candidate.normalized, candidate.stateRevision)
       if (mounted.current) { setResult(outcome); onAccepted() }
     } catch {
       if (mounted.current) setError('暂时未能保存，请再试一次。')

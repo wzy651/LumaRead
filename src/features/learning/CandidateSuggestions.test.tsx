@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { setFixtureLearningStatus } from '../../../tests/helpers/vocabulary'
 import { act, StrictMode } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { MemoryRouter } from 'react-router-dom'
@@ -86,7 +87,7 @@ describe('candidate surfaces use real persisted learning data', () => {
   })
 
   it('handles a stale acceptance without overwriting a newer known status', async () => {
-    await seed(); await mount(); await repository.setLearningStatus('bank', 'recognized')
+    await seed(); await mount(); await setFixtureLearningStatus('bank', 'recognized')
     await click(candidates()!.querySelector('button')!)
     await settle(() => expect(candidates()?.textContent).toContain('状态已更新'))
     expect((await readLearningData()).terms[0].status).toBe('recognized')
@@ -110,7 +111,7 @@ describe('candidate surfaces use real persisted learning data', () => {
     await seed(); await mount()
     let release!: () => void
     const gate = new Promise<void>((resolve) => { release = resolve }), original = repository.acceptLearningCandidate
-    const acceptance = vi.spyOn(repository, 'acceptLearningCandidate').mockImplementation(async (normalized) => { await gate; return original(normalized) })
+    const acceptance = vi.spyOn(repository, 'acceptLearningCandidate').mockImplementation(async (normalized, revision) => { await gate; return original(normalized, revision) })
     const button = candidates()!.querySelector('button')!
     await act(async () => { button.click(); button.click() })
     expect(button.disabled).toBe(true); expect(button.textContent).not.toBe('已加入学习')

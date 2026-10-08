@@ -8,6 +8,7 @@ export interface VocabularyItem {
   definition: string
   sourceSentence: string
   contextNote: string
-  status: VocabularyStatus
+  /** @deprecated Prototype/legacy mirror only; real learning uses getVocabularyState. */
+  readonly status: VocabularyStatus
   addedToLearning: boolean
 }

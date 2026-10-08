@@ -6,11 +6,12 @@ import { LookupContent } from './LookupContent'
 import { ConfiguredContextProvider } from './context-provider'
 import { saveAISettings, clearSessionKey } from './settings'
 import type { LearningTerm, ReadingExcerpt } from './types'
+import { applyVocabularyAction } from './vocabulary-state'
 
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 const mocks = vi.hoisted(() => ({ lookup: vi.fn(), record: vi.fn(), status: vi.fn() }))
 vi.mock('./dictionary', () => ({ lookupDictionary: mocks.lookup }))
-vi.mock('./repository', () => ({ recordLookup: mocks.record, setLearningStatus: mocks.status }))
+vi.mock('./repository', () => ({ recordLookup: mocks.record, updateVocabularyState: mocks.status, readLearningTerm: async () => (await mocks.record()).term }))
 const excerpt: ReadingExcerpt = { text: 'bank', sentence: 'She sat on the bank of the river.', resourceKey: 'imported:qa', bookTitle: 'River' }
 let container: HTMLDivElement, root: Root
 function deferred<T>() { let resolve!: (value: T) => void; const promise = new Promise<T>((done) => { resolve = done }); return { promise, resolve } }
@@ -25,7 +26,8 @@ beforeEach(() => {
   localStorage.clear(); clearSessionKey()
   mocks.lookup.mockReset().mockResolvedValue({ word: 'bank', translation: '河岸；银行', definition: 'A river bank.', phonetic: '', source: 'ECDICT' })
   mocks.record.mockReset().mockResolvedValue({ term: { normalized: 'bank', text: 'bank', status: 'unknown', lookups: 1, lastSeen: '', example: excerpt } satisfies LearningTerm })
-  mocks.status.mockReset().mockResolvedValue(undefined)
+  let current: LearningTerm = { normalized: 'bank', text: 'bank', status: 'unknown', lookups: 1, lastSeen: '', example: excerpt }
+  mocks.status.mockReset().mockImplementation(async (_normalized, action) => { current = applyVocabularyAction(current, action); return { outcome: 'saved', term: current } })
 })
 afterEach(() => { act(() => root.unmount()); container.remove(); vi.restoreAllMocks() })
 it('records once under StrictMode and does not call AI or add to learning automatically', async () => {
@@ -33,8 +35,8 @@ it('records once under StrictMode and does not call AI or add to learning automa
   await mount()
   expect(container.textContent).toContain('河岸；银行'); expect(mocks.record).toHaveBeenCalledTimes(1)
   expect(explain).not.toHaveBeenCalled(); expect(mocks.status).not.toHaveBeenCalled()
-  await click('加入学习'); expect(mocks.status).toHaveBeenLastCalledWith('bank', 'learning')
-  await click('已加入学习 · 撤销'); expect(mocks.status).toHaveBeenLastCalledWith('bank', 'unknown')
+  await click('加入学习'); expect(mocks.status).toHaveBeenLastCalledWith('bank', { type: 'enroll' }, 0)
+  await click('移出学习'); expect(mocks.status).toHaveBeenLastCalledWith('bank', { type: 'unenroll' }, 1)
 })
 it('offers configuration without sending when no key exists', async () => {
   const settings = vi.fn(), explain = vi.spyOn(ConfiguredContextProvider.prototype, 'explain')

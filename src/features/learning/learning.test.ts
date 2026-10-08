@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { setFixtureLearningStatus } from '../../../tests/helpers/vocabulary'
 import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { IDBFactory } from 'fake-indexeddb'
@@ -6,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { lookupDictionary, normalizeTerm } from './dictionary'
 import { contextEndpoint, readAISettings, saveAISettings, getSessionKey, clearSessionKey } from './settings'
 import { ConfiguredContextProvider, contextMessages, extractAnswer } from './context-provider'
-import { recordLookup, recentLookups, setLearningStatus } from './repository'
+import { recordLookup, recentLookups } from './repository'
 import { contextAtAnchor, sentenceAround, wordAtOffset } from './selection'
 import type { ReadingExcerpt } from './types'
 
@@ -41,12 +42,12 @@ describe('reading records do not create review obligations', () => {
   it('records source and context while remaining unknown until explicitly added', async () => {
     const first = await recordLookup(excerpt)
     expect(first.term.status).toBe('unknown'); expect(first.previous).toBeUndefined()
-    await setLearningStatus('BANK', 'learning')
+    await setFixtureLearningStatus('BANK', 'learning')
     const second = await recordLookup({ ...excerpt, resourceKey: 'imported:two', sentence: 'She went to the bank.' })
     expect(second.term.status).toBe('learning'); expect(second.term.lookups).toBe(2)
     expect(second.previous?.sentence).toBe(excerpt.sentence)
     const history = await recentLookups(); expect(history).toHaveLength(2); expect(history[0].resourceKey).toBe('imported:two')
-    await setLearningStatus('bank', 'unknown'); expect((await recordLookup(excerpt)).term.status).toBe('unknown')
+    await setFixtureLearningStatus('bank', 'unknown'); expect((await recordLookup(excerpt)).term.status).toBe('unknown')
   })
   it('serializes simultaneous updates without losing lookups', async () => {
     const results = await Promise.all(Array.from({ length: 8 }, () => recordLookup(excerpt)))
